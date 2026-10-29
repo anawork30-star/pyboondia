@@ -9,13 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+        with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run test
-      # El build usa valores ficticios: los secretos reales viven solo en Vercel.
+      - run: npm run lint
+      - run: npm test
+      # El build de CI no necesita credenciales: sin Supabase, el formulario muestra un aviso
+      # en lugar de fingir un envío exitoso.
       - run: npm run build
         env:
-          NEXT_PUBLIC_SITE_URL: https://example.com
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          VITE_SITE_URL: https://www.aiduoficial.com
