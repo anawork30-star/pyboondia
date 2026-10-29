@@ -31,10 +31,25 @@ export const IMAGES = {
     'Líneas azules ondulantes sobre fondo oscuro',
     '1634017839464-5c339ebe3cb4',
   ),
-  serviceBranding: img(
-    'service-branding',
-    'Paletas de color impresas y tableta con piezas gráficas sobre una mesa de diseño',
-    '1561070791-2526d30994b5',
+  strategyBoard: img(
+    'strategy-board',
+    'Mano organizando un mapa estratégico con tarjetas y conexiones en una pizarra',
+    '1531403009284-440f080d1e12',
+  ),
+  dataAnalytics: img(
+    'data-analytics',
+    'Portátil mostrando un tablero de datos con gráficos y mapas',
+    '1504868584819-f8e8b4b6d7e3',
+  ),
+  ugcCreator: img(
+    'ugc-creator',
+    'Creadora de contenido grabando con su teléfono frente a un lago y montañas',
+    '1604537529428-15bcbeecfe4d',
+  ),
+  ugcCasting: img(
+    'ugc-casting',
+    'Grupo de mujeres conversando en un café alrededor de una mesa',
+    '1590650046871-92c887180603',
   ),
   serviceSocial: img(
     'service-social',
@@ -50,11 +65,6 @@ export const IMAGES = {
     'service-ai',
     'Mano robótica blanca extendida en un espacio luminoso',
     '1531746790731-6c087fecd65a',
-  ),
-  workLogoSketch: img(
-    'work-logo-sketch',
-    'Manos bocetando ideas de logotipo en un cuaderno junto a una cámara',
-    '1493421419110-74f4e85ba126',
   ),
   workFeed: img(
     'work-feed',

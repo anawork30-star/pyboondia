@@ -3,7 +3,7 @@ import Picture from '../components/Picture'
 import { IMAGES } from '../data/images'
 import { SERVICES } from '../data/services'
 
-const MARQUEE = ['Branding', 'Redes sociales', 'Páginas web', 'Chatbots', 'Inteligencia artificial', 'Contenido', 'Automatización']
+const MARQUEE = ['Estrategia', 'Datos validados', 'Redes sociales', 'Creadores UGC', 'Páginas web', 'Chatbots', 'Inteligencia artificial']
 
 export default function Hero() {
   return (
@@ -16,7 +16,7 @@ export default function Hero() {
 
       <div className="container-x grid items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-10">
         <div className="relative z-10">
-          <p className="eyebrow text-violet">Estudio creativo de marketing digital</p>
+          <p className="eyebrow text-violet">Marketing digital con estrategia y datos</p>
           <h1
             id="hero-title"
             className="mt-6 text-[clamp(2.75rem,7.4vw,6.25rem)] font-extrabold leading-[0.92] tracking-[-0.045em]"
@@ -32,8 +32,8 @@ export default function Hero() {
             </span>
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted sm:text-xl">
-            Unimos diseño, contenido, desarrollo web e inteligencia artificial para que tu negocio se vea profesional,
-            conecte con su audiencia y atienda a sus clientes sin perder oportunidades.
+            Empezamos por la <strong className="font-semibold text-ink">estrategia</strong>: validamos tus datos y decidimos
+            con ellos. Después la ejecutamos con contenido, creadores UGC, páginas web y chatbots con inteligencia artificial.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a href="#contacto" className="btn btn-primary px-7 py-4 text-base">
@@ -81,7 +81,7 @@ export default function Hero() {
 /** Composición editorial: fotografía principal + piezas flotantes que representan cada servicio. */
 function HeroCollage() {
   return (
-    <div className="relative mx-auto aspect-[4/5] w-full max-w-[34rem] sm:aspect-[5/5.4]" aria-label="Collage de trabajos de diseño, redes, web e inteligencia artificial" role="img">
+    <div className="relative mx-auto aspect-[4/5] w-full max-w-[34rem] sm:aspect-[5/5.4]" aria-label="Collage de estrategia con datos, contenido, web e inteligencia artificial" role="img">
       {/* Bloque de color detrás */}
       <div className="absolute right-0 top-0 h-[78%] w-[82%] rounded-[2.5rem] bg-violet" />
       <div className="absolute bottom-[6%] left-0 h-[34%] w-[42%] rounded-[2rem] bg-coral" />
@@ -121,17 +121,18 @@ function HeroCollage() {
 
       {/* Paleta de marca */}
       <div className="float absolute left-[-2%] top-[10%] rounded-2xl bg-white p-3 shadow-xl shadow-ink/15" style={{ '--r': '4deg', animationDelay: '0.6s' }}>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Paleta</p>
-        <div className="mt-2 flex -space-x-2">
-          {['#141218', '#5b3df5', '#ff5a3c', '#c8f04a'].map((c) => (
-            <span key={c} className="h-8 w-8 rounded-full border-2 border-white" style={{ background: c }} />
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Dato validado</p>
+        <div className="mt-2 flex h-10 items-end gap-1.5">
+          {[40, 65, 50, 85, 100].map((h, i) => (
+            <span key={i} className={`w-3 rounded-sm ${i === 4 ? 'bg-violet' : 'bg-ink/15'}`} style={{ height: `${h}%` }} />
           ))}
+          <span className="ml-1 self-center rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">Decisión</span>
         </div>
       </div>
 
       {/* Sello */}
       <div className="absolute right-[-1%] top-[-3%] grid h-24 w-24 rotate-12 place-items-center rounded-full bg-lime text-center font-display text-xs font-bold uppercase leading-tight tracking-wide text-ink shadow-lg sm:h-28 sm:w-28">
-        Diseño
+        Estrategia
         <br />+ datos
         <br />+ IA
       </div>

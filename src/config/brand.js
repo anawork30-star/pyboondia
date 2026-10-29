@@ -11,9 +11,9 @@ const whatsappNumber = clean(env.VITE_WHATSAPP_NUMBER).replace(/\D/g, '')
 export const BRAND = {
   name: 'AIDU',
   legalName: clean(env.VITE_LEGAL_NAME) || 'AIDU',
-  tagline: 'Estudio creativo de marketing digital',
+  tagline: 'Agencia de marketing digital estratégico',
   description:
-    'Branding, redes sociales, páginas web y chatbots con inteligencia artificial para marcas que quieren crecer con estrategia.',
+    'Estrategia basada en datos, redes sociales, creadores UGC, páginas web y chatbots con inteligencia artificial para marcas que quieren crecer con decisiones informadas.',
   siteUrl: clean(env.VITE_SITE_URL) || 'https://www.aiduoficial.com',
   city: clean(env.VITE_CITY),
 }
@@ -35,6 +35,7 @@ export const SOCIALS = [
 
 export const NAV = [
   { id: 'inicio', label: 'Inicio' },
+  { id: 'estrategia', label: 'Estrategia' },
   { id: 'servicios', label: 'Servicios' },
   { id: 'portafolio', label: 'Portafolio' },
   { id: 'nosotros', label: 'Nosotros' },

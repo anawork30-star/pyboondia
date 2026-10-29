@@ -1,4 +1,4 @@
-import { IMAGES } from './images'
+import { IMAGES } from './images.js'
 
 // Proyectos de muestra. IMPORTANTE: son conceptos demostrativos creados para ilustrar el tipo de
 // trabajo de la agencia; no representan clientes reales ni resultados medidos. Cuando tengas
@@ -6,24 +6,25 @@ import { IMAGES } from './images'
 
 export const CATEGORIES = [
   { id: 'all', label: 'Todos' },
-  { id: 'branding', label: 'Branding' },
+  { id: 'estrategia', label: 'Estrategia y datos' },
   { id: 'social', label: 'Redes sociales' },
+  { id: 'ugc', label: 'Creadores UGC' },
   { id: 'web', label: 'Diseño web' },
   { id: 'ai', label: 'Chatbots e IA' },
 ]
 
 export const PROJECTS = [
   {
-    id: 'cafe-origen',
-    category: 'branding',
-    title: 'Identidad para un café de especialidad',
-    summary: 'Concepto de marca artesanal: del boceto del símbolo al sistema de empaques.',
+    id: 'plan-ecommerce',
+    category: 'estrategia',
+    title: 'Plan de crecimiento para una tienda online',
+    summary: 'Concepto de estrategia digital: del diagnóstico de datos al plan por canal.',
     challenge:
-      'Una marca de café que necesita diferenciarse en anaquel y transmitir su origen sin caer en los clichés del sector.',
+      'Una tienda con ventas irregulares que invertía en varios canales sin saber cuál aportaba resultados.',
     approach:
-      'Exploración de símbolos a mano alzada, paleta inspirada en el proceso de tostión y un sistema tipográfico flexible para empaques y redes.',
-    deliverables: ['Logotipo y variaciones', 'Paleta y tipografías', 'Plantillas de empaque', 'Mini manual de marca'],
-    image: IMAGES.workLogoSketch,
+      'Auditoría de la medición, validación de los datos de ventas y tráfico, definición de audiencias y un plan de acción priorizado con KPIs por canal.',
+    deliverables: ['Auditoría de medición', 'Mapa de audiencias', 'KPIs por canal', 'Plan de acción priorizado'],
+    image: IMAGES.strategyBoard,
     concept: true,
     size: 'tall',
   },
@@ -70,14 +71,16 @@ export const PROJECTS = [
     size: 'regular',
   },
   {
-    id: 'sistema-cromatico',
-    category: 'branding',
-    title: 'Sistema cromático para una marca de bienestar',
-    summary: 'Concepto de paleta y piezas gráficas para un estudio de yoga y bienestar.',
-    challenge: 'Una marca que se veía distinta en cada pieza y no transmitía la calma de su experiencia.',
-    approach: 'Paleta principal y secundaria con reglas de uso, retícula para piezas y set de iconografía.',
-    deliverables: ['Paleta de color', 'Iconografía', 'Piezas publicitarias', 'Guía de aplicación'],
-    image: IMAGES.serviceBranding,
+    id: 'ugc-cuidado-personal',
+    category: 'ugc',
+    title: 'Campaña UGC para una marca de cuidado personal',
+    summary: 'Concepto de selección de creadores y piezas auténticas para redes y anuncios.',
+    challenge:
+      'Anuncios con producción de estudio que se sentían lejanos y no generaban confianza en nuevos clientes.',
+    approach:
+      'Perfil de creadores afines al público, brief con mensajes clave, guiones flexibles, revisión de calidad y acuerdo de derechos de uso para pauta.',
+    deliverables: ['Perfil y selección de creadores', 'Brief y guiones', 'Revisión de piezas', 'Acuerdo de derechos de uso'],
+    image: IMAGES.ugcCasting,
     concept: true,
     size: 'wide',
   },
@@ -115,6 +118,19 @@ export const PROJECTS = [
       'Bot de preguntas de calificación, registro automático en el CRM y alertas para el equipo comercial.',
     deliverables: ['Preguntas de calificación', 'Integración con CRM', 'Alertas internas', 'Tablero de seguimiento'],
     image: IMAGES.workDashboard,
+    concept: true,
+    size: 'regular',
+  },
+  {
+    id: 'tablero-decisiones',
+    category: 'estrategia',
+    title: 'Tablero de medición para decidir con datos',
+    summary: 'Concepto de tablero que une ventas, redes y web en un solo lugar.',
+    challenge: 'Datos repartidos en varias plataformas, con cifras que no coincidían entre sí.',
+    approach:
+      'Limpieza y validación de fuentes, definición de métricas comunes y un tablero con preguntas de negocio, no solo gráficos.',
+    deliverables: ['Validación de fuentes', 'Diccionario de métricas', 'Tablero de seguimiento', 'Rutina de revisión mensual'],
+    image: IMAGES.dataAnalytics,
     concept: true,
     size: 'regular',
   },

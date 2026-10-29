@@ -2,7 +2,7 @@
 // navegador) para poder probarla y la base de datos repite las mismas reglas en la función
 // submit_contact_request, así que el cliente nunca es la única barrera.
 
-export const SERVICE_VALUES = ['branding', 'social', 'web', 'ai', 'integral']
+export const SERVICE_VALUES = ['estrategia', 'social', 'ugc', 'web', 'ai', 'branding', 'integral']
 export const BUDGET_VALUES = ['menos-2m', '2-5m', '5-10m', 'mas-10m', 'por-definir']
 
 export const LIMITS = { name: [2, 120], company: [0, 120], message: [20, 3000], email: 254 }

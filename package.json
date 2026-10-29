@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "chat:knowledge": "node scripts/build-chat-knowledge.mjs",
+    "prebuild": "npm run chat:knowledge",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",

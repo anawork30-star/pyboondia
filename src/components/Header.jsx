@@ -51,7 +51,7 @@ export default function Header({ onHome = true }) {
   }, [open])
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
+    const mq = window.matchMedia('(min-width: 1280px)')
     const onChange = () => mq.matches && setOpen(false)
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
@@ -77,7 +77,7 @@ export default function Header({ onHome = true }) {
             <Logo />
           </a>
   
-          <nav aria-label="Principal" className="hidden lg:block">
+          <nav aria-label="Principal" className="hidden xl:block">
             <ul className="flex items-center gap-1 rounded-full border border-ink/10 bg-paper/70 p-1.5 backdrop-blur">
               {NAV.map((item) => {
                 const isActive = onHome && active === item.id
@@ -105,7 +105,7 @@ export default function Header({ onHome = true }) {
             <button
               ref={toggleRef}
               type="button"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink text-paper lg:hidden"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink text-paper xl:hidden"
               aria-expanded={open}
               aria-controls="menu-movil"
               aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
@@ -121,7 +121,7 @@ export default function Header({ onHome = true }) {
       <div
         id="menu-movil"
         hidden={!open}
-        className="fixed inset-x-0 bottom-0 top-[72px] z-40 overflow-y-auto bg-paper lg:hidden"
+        className="fixed inset-x-0 bottom-0 top-[72px] z-40 overflow-y-auto bg-paper xl:hidden"
       >
         <nav aria-label="Menú móvil" className="container-x flex min-h-full flex-col justify-between gap-10 py-8">
           <ul className="flex flex-col">

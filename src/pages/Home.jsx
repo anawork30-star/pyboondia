@@ -8,6 +8,7 @@ import Hero from '../sections/Hero'
 import Portfolio from '../sections/Portfolio'
 import Process from '../sections/Process'
 import Services from '../sections/Services'
+import Strategy from '../sections/Strategy'
 
 export default function Home() {
   // Objeto nuevo en cada clic para que el formulario se actualice aunque se repita el servicio.
@@ -19,6 +20,7 @@ export default function Home() {
       <Header />
       <main id="contenido">
         <Hero />
+        <Strategy onQuote={onQuote} />
         <Services onQuote={onQuote} />
         <Portfolio onQuote={onQuote} />
         <About />

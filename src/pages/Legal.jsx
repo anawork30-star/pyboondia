@@ -30,6 +30,14 @@ const DOCS = {
         ],
       },
       {
+        h: '2.1 Asistente virtual con IA',
+        p: [
+          'Los mensajes que escribes en el asistente del sitio se envían a un proveedor de inteligencia artificial (actualmente Google, mediante su API Gemini) a través de nuestra infraestructura en Supabase, solo para generar la respuesta. No los guardamos en nuestra base de datos. Durante tu visita, la conversación se conserva únicamente en tu navegador.',
+          'Según el plan que tengamos contratado con el proveedor, este puede utilizar el contenido de las conversaciones para mejorar sus productos, de acuerdo con sus propios términos.',
+          'No escribas en el asistente datos sensibles, documentos de identidad, contraseñas ni datos bancarios.',
+        ],
+      },
+      {
         h: '3. Finalidades',
         p: [
           'Usamos tus datos para: responder tu solicitud, preparar y enviarte propuestas comerciales, hacer seguimiento a la conversación iniciada por ti y cumplir obligaciones legales.',

@@ -29,7 +29,7 @@ export default function About() {
             aria-hidden="true"
             className="absolute -left-4 top-8 rotate-[-8deg] rounded-full bg-lime px-5 py-2 font-display text-sm font-bold shadow-lg"
           >
-            Hecho con criterio
+            Decisiones con datos
           </div>
         </div>
 
@@ -39,10 +39,10 @@ export default function About() {
             eyebrow="Nosotros"
             title={
               <>
-                Creatividad con método. <span className="text-violet">Tecnología con propósito.</span>
+                Estrategia primero. <span className="text-violet">Creatividad y tecnología después.</span>
               </>
             }
-            intro="Somos un estudio que piensa como estratega, diseña como marca y construye como equipo de producto. Combinamos las tres miradas para que cada proyecto se vea bien y, sobre todo, funcione para tu negocio."
+            intro="Somos una agencia que piensa primero como estratega: validamos los datos, tomamos decisiones con ellos y luego los convertimos en contenido, alianzas con creadores UGC, sitios web y automatizaciones. Así cada proyecto se ve bien y, sobre todo, funciona para tu negocio."
           />
 
           <ul className="mt-10 grid gap-3 sm:grid-cols-3">
