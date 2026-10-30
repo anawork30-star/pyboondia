@@ -36,6 +36,19 @@ describe('Gemini: respuesta', () => {
     expect(readGeminiReply({ promptFeedback: { blockReason: 'SAFETY' } })).toEqual({ ok: false, error: 'REFUSED' });
     expect(readGeminiReply({ candidates: [{ finishReason: 'SAFETY' }] })).toEqual({ ok: false, error: 'REFUSED' });
   });
+  it('pide razonamiento bajo y reintenta sin él si el modelo no lo admite', async () => {
+    expect(buildGeminiRequest('S', history).generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{"error":{"message":"Unknown field thinking_level"}}', { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'OK' }] } }] }), { status: 200 }));
+    await expect(askGemini('k', 'm', 'S', history, fetchImpl)).resolves.toEqual({ ok: true, reply: 'OK' });
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body).generationConfig.thinkingConfig).toBeUndefined();
+  });
+  it('no se queda colgado si Gemini no responde', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new DOMException('timeout', 'TimeoutError'));
+    await expect(askGemini('k', 'm', 'S', history, fetchImpl)).resolves.toEqual({ ok: false, error: 'UPSTREAM_BUSY' });
+  });
   it('distingue límite de uso y clave inválida', async () => {
     const r429 = vi.fn().mockResolvedValue(new Response('{}', { status: 429 }));
     const rBadKey = vi.fn().mockResolvedValue(new Response('{"error":{"details":[{"reason":"API_KEY_INVALID"}]}}', { status: 400 }));

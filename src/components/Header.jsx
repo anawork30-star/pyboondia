@@ -62,9 +62,7 @@ export default function Header({ onHome = true }) {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow,padding] duration-300 ${
-          solid ? 'bg-paper/85 py-3 shadow-[0_1px_0_rgb(20_18_24/0.08)] backdrop-blur-xl' : 'bg-transparent py-5'
-        }`}
+        className={`fixed inset-x-0 top-0 z-50 transition-[padding] duration-300 ${solid ? 'py-3' : 'py-5'}`}
       >
         <a
           href="#contenido"
@@ -72,47 +70,60 @@ export default function Header({ onHome = true }) {
         >
           Saltar al contenido
         </a>
-        <div className="container-x flex items-center justify-between gap-6">
-          <a href={onHome ? '#inicio' : '/'} aria-label="AIDU, ir al inicio" onClick={() => setOpen(false)}>
-            <Logo />
-          </a>
-  
-          <nav aria-label="Principal" className="hidden xl:block">
-            <ul className="flex items-center gap-1 rounded-full border border-ink/10 bg-paper/70 p-1.5 backdrop-blur">
-              {NAV.map((item) => {
-                const isActive = onHome && active === item.id
-                return (
-                  <li key={item.id}>
-                    <a
-                      href={hrefFor(item.id, onHome)}
-                      aria-current={isActive ? 'location' : undefined}
-                      className={`block rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        isActive ? 'bg-ink text-paper' : 'text-ink/75 hover:bg-ink/5 hover:text-ink'
-                      }`}
-                    >
-                      {item.label}
-                    </a>
-                  </li>
-                )
-              })}
-            </ul>
-          </nav>
-  
-          <div className="flex items-center gap-2">
-            <a href={hrefFor('contacto', onHome)} className="btn btn-primary hidden sm:inline-flex">
-              Solicitar cotización <ArrowUpRight size={16} aria-hidden="true" />
+        {/* Al hacer scroll, la barra se convierte en una píldora flotante. */}
+        <div className="container-x">
+          <div
+            className={`flex items-center justify-between gap-6 rounded-full transition-[background-color,box-shadow,padding] duration-300 ${
+              solid
+                ? 'bg-white/85 py-2 pl-6 pr-2 shadow-[0_12px_40px_-12px_rgb(20_18_24/0.25)] ring-1 ring-ink/5 backdrop-blur-xl'
+                : 'py-0'
+            }`}
+          >
+            <a href={onHome ? '#inicio' : '/'} aria-label="AIDU, ir al inicio" onClick={() => setOpen(false)} className="shrink-0">
+              <Logo label={false} className={`w-auto transition-[height] duration-300 ${solid ? 'h-9' : 'h-11'}`} />
             </a>
-            <button
-              ref={toggleRef}
-              type="button"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink text-paper xl:hidden"
-              aria-expanded={open}
-              aria-controls="menu-movil"
-              aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
-              onClick={() => setOpen((o) => !o)}
-            >
-              {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
-            </button>
+    
+            <nav aria-label="Principal" className="hidden xl:block">
+              <ul
+                className={`flex items-center gap-1 rounded-full border p-1.5 transition-colors ${
+                  solid ? 'border-transparent' : 'border-ink/10 bg-paper/70 backdrop-blur'
+                }`}
+              >
+                {NAV.map((item) => {
+                  const isActive = onHome && active === item.id
+                  return (
+                    <li key={item.id}>
+                      <a
+                        href={hrefFor(item.id, onHome)}
+                        aria-current={isActive ? 'location' : undefined}
+                        className={`block rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          isActive ? 'bg-ink text-paper' : 'text-ink/75 hover:bg-ink/5 hover:text-ink'
+                        }`}
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  )
+                })}
+              </ul>
+            </nav>
+    
+            <div className="flex items-center gap-2">
+              <a href={hrefFor('contacto', onHome)} className="btn btn-primary hidden sm:inline-flex">
+                Solicitar cotización <ArrowUpRight size={16} aria-hidden="true" />
+              </a>
+              <button
+                ref={toggleRef}
+                type="button"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink text-paper xl:hidden"
+                aria-expanded={open}
+                aria-controls="menu-movil"
+                aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+                onClick={() => setOpen((o) => !o)}
+              >
+                {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -121,7 +132,7 @@ export default function Header({ onHome = true }) {
       <div
         id="menu-movil"
         hidden={!open}
-        className="fixed inset-x-0 bottom-0 top-[72px] z-40 overflow-y-auto bg-paper xl:hidden"
+        className="fixed inset-x-0 bottom-0 top-[88px] z-40 overflow-y-auto bg-paper xl:hidden"
       >
         <nav aria-label="Menú móvil" className="container-x flex min-h-full flex-col justify-between gap-10 py-8">
           <ul className="flex flex-col">

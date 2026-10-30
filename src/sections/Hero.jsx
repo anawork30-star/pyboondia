@@ -60,15 +60,17 @@ export default function Hero() {
         <HeroCollage />
       </div>
 
-      <div className="mt-20 border-y border-ink/10 bg-ink py-5 text-paper sm:mt-24" aria-hidden="true">
-        <div className="flex overflow-hidden">
-          <div className="marquee-track flex shrink-0 items-center gap-10 pr-10">
+      {/* Franja animada: delgada y discreta, con un acento de color en la línea inferior. */}
+      <div className="mt-20 border-y border-ink/10 bg-white/50 py-3 sm:mt-24" aria-hidden="true">
+        <div className="flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
+          <div className="marquee-track flex shrink-0 items-center gap-8 pr-8">
             {[...MARQUEE, ...MARQUEE].map((word, i) => (
-              <span key={i} className="flex items-center gap-10 whitespace-nowrap font-display text-2xl font-semibold sm:text-3xl">
+              <span
+                key={i}
+                className="flex items-center gap-8 whitespace-nowrap text-xs font-normal uppercase tracking-[0.28em] text-ink/70 sm:text-[13px]"
+              >
                 {word}
-                <svg viewBox="0 0 20 20" className="h-5 w-5 text-lime" fill="currentColor">
-                  <path d="M10 0l2.6 7.4L20 10l-7.4 2.6L10 20l-2.6-7.4L0 10l7.4-2.6z" />
-                </svg>
+                <span className={`h-1.5 w-1.5 rounded-full ${['bg-violet', 'bg-coral', 'bg-lime'][i % 3]}`} />
               </span>
             ))}
           </div>

@@ -45,7 +45,7 @@ export default function Strategy({ onQuote }) {
               as="li"
               key={step.title}
               delay={i * 90}
-              className="relative flex flex-col rounded-[1.75rem] border border-ink/10 bg-white/70 p-6"
+              className="relative flex flex-col rounded-[1.75rem] bg-white p-6 shadow-[0_18px_50px_-24px_rgb(20_18_24/0.25)] ring-1 ring-ink/5"
             >
               <span className={`grid h-12 w-12 place-items-center rounded-full font-display text-xl font-extrabold ${STEP_COLORS[i]}`}>
                 {i + 1}

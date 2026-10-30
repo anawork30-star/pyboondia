@@ -11,7 +11,7 @@ export default function Footer({ onHome = true }) {
       <div className="container-x py-16 lg:py-20">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="max-w-sm">
-            <Logo tone="light" />
+            <Logo tone="light" className="h-16 w-auto" />
             <p className="mt-5 leading-relaxed text-paper/70">{BRAND.description}</p>
             <a href={`${base}#contacto`} className="btn btn-light mt-7">
               Hablemos de tu proyecto <ArrowUpRight size={16} aria-hidden="true" />
@@ -92,12 +92,9 @@ export default function Footer({ onHome = true }) {
           </div>
         </div>
 
-        <p
-          aria-hidden="true"
-          className="mt-16 select-none font-display text-[22vw] font-extrabold leading-[0.8] tracking-tighter text-paper/[0.06] lg:text-[16rem]"
-        >
-          {BRAND.name.toLowerCase()}
-        </p>
+        <div className="mt-16 flex justify-end opacity-[0.08]">
+          <Logo tone="light" label={false} className="h-auto w-1/2 max-w-[22rem]" />
+        </div>
 
         <div className="mt-8 flex flex-col gap-4 border-t border-paper/15 pt-8 text-sm text-paper/60 md:flex-row md:items-center md:justify-between">
           <p>

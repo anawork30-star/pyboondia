@@ -2,6 +2,7 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import ChatWidget from './components/ChatWidget.jsx'
+import IntroLoader from './components/IntroLoader.jsx'
 import Home from './pages/Home.jsx'
 
 // Sitio multipágina: cada HTML (index, privacidad, terminos, 404) indica su página con
@@ -20,6 +21,7 @@ const Page = PAGES[page]
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    {page === 'home' && <IntroLoader />}
     <Suspense fallback={null}>
       <Page doc={page} />
     </Suspense>

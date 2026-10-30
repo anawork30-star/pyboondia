@@ -1,16 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUpRight, Check, Plus, X } from 'lucide-react'
+import { ArrowUpRight, Check, X } from 'lucide-react'
 import Picture from '../components/Picture'
 import Reveal from '../components/Reveal'
 import SectionHeading from '../components/SectionHeading'
 import { CATEGORIES, PROJECTS } from '../data/portfolio'
 
 const CATEGORY_LABEL = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label]))
-const SIZE = {
-  tall: 'sm:row-span-2',
-  wide: 'sm:col-span-2',
-  regular: '',
-}
 
 export default function Portfolio({ onQuote }) {
   const [filter, setFilter] = useState('all')
@@ -18,9 +13,9 @@ export default function Portfolio({ onQuote }) {
   const projects = useMemo(() => (filter === 'all' ? PROJECTS : PROJECTS.filter((p) => p.category === filter)), [filter])
 
   return (
-    <section id="portafolio" aria-labelledby="portafolio-title" className="bg-cream py-24 sm:py-32">
+    <section id="portafolio" aria-labelledby="portafolio-title" className="py-24 sm:py-32">
       <div className="container-x">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-10">
           <SectionHeading
             id="portafolio-title"
             eyebrow="Portafolio"
@@ -31,7 +26,11 @@ export default function Portfolio({ onQuote }) {
             }
             intro="Una muestra del tipo de proyectos que diseñamos. Son conceptos demostrativos creados para ilustrar nuestro enfoque, no casos de clientes."
           />
-          <div role="group" aria-label="Filtrar proyectos por categoría" className="flex flex-wrap gap-2">
+          <div
+            role="group"
+            aria-label="Filtrar proyectos por categoría"
+            className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 lg:w-fit lg:flex-nowrap lg:rounded-full lg:bg-white lg:p-1 lg:shadow-[0_8px_30px_-12px_rgb(20_18_24/0.2)] lg:ring-1 lg:ring-ink/5"
+          >
             {CATEGORIES.map((c) => {
               const active = filter === c.id
               return (
@@ -40,8 +39,8 @@ export default function Portfolio({ onQuote }) {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setFilter(c.id)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                    active ? 'border-ink bg-ink text-paper' : 'border-ink/20 bg-paper/60 hover:border-ink'
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    active ? 'bg-ink text-paper' : 'bg-white text-ink/70 ring-1 ring-ink/10 hover:text-ink lg:bg-transparent lg:ring-0'
                   }`}
                 >
                   {c.label}
@@ -55,37 +54,37 @@ export default function Portfolio({ onQuote }) {
           {projects.length} proyectos en {CATEGORY_LABEL[filter]}
         </p>
 
-        <ul className="mt-14 grid grid-flow-dense auto-rows-[19rem] gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[20rem]">
+        <ul className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p, i) => (
-            <Reveal as="li" key={p.id} delay={(i % 3) * 80} className={SIZE[p.size]}>
+            <Reveal as="li" key={p.id} delay={(i % 3) * 80}>
               <button
                 type="button"
                 onClick={() => setSelected(p)}
-                className="group relative block h-full w-full overflow-hidden rounded-[1.75rem] bg-ink text-left text-paper"
                 aria-haspopup="dialog"
+                className="group flex h-full w-full flex-col rounded-[1.75rem] bg-white p-2.5 text-left shadow-[0_18px_50px_-24px_rgb(20_18_24/0.25)] ring-1 ring-ink/5 transition-[transform,box-shadow] duration-500 ease-out-soft hover:-translate-y-1 hover:shadow-[0_28px_60px_-24px_rgb(20_18_24/0.35)]"
               >
-                <Picture
-                  image={p.image}
-                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out-soft group-hover:scale-105"
-                />
-                <span className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
-                <span className="absolute left-4 top-4 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-paper px-3 py-1 text-xs font-semibold text-ink">{CATEGORY_LABEL[p.category]}</span>
+                <span className="relative block aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-cream">
+                  <Picture
+                    image={p.image}
+                    sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 92vw"
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out-soft group-hover:scale-[1.04]"
+                  />
                   {p.concept && (
-                    <span className="rounded-full bg-ink/70 px-3 py-1 text-xs font-semibold text-paper backdrop-blur">
+                    <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur">
                       Concepto demostrativo
                     </span>
                   )}
                 </span>
-                <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-6">
-                  <span>
-                    <span className="block font-display text-2xl font-bold leading-tight">{p.title}</span>
-                    <span className="mt-1.5 block text-sm text-paper/80">{p.summary}</span>
+                <span className="flex flex-1 flex-col px-3 pb-3 pt-5">
+                  <span className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                    {CATEGORY_LABEL[p.category]}
+                    <span aria-hidden="true">{String(PROJECTS.indexOf(p) + 1).padStart(2, '0')}</span>
                   </span>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-lime text-ink transition-transform duration-300 group-hover:rotate-90">
-                    <Plus size={20} aria-hidden="true" />
-                    <span className="sr-only">Ver detalle</span>
+                  <span className="mt-3 block font-display text-xl font-bold leading-snug">{p.title}</span>
+                  <span className="mt-2 line-clamp-2 block text-[15px] leading-relaxed text-muted">{p.summary}</span>
+                  <span className="mt-auto flex items-center gap-1.5 pt-5 text-sm font-semibold text-violet">
+                    Ver proyecto
+                    <ArrowUpRight size={16} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </span>
                 </span>
               </button>
