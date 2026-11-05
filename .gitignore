@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Contenido comercial confidencial (precios): se ejecuta en Supabase, nunca se sube a GitHub
+supabase/private/

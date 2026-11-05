@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Menu, X } from 'lucide-react'
+import { ArrowUpRight, LockKeyhole, Menu, X } from 'lucide-react'
 import Logo from './Logo'
 import { NAV } from '../config/brand'
 
@@ -109,6 +109,12 @@ export default function Header({ onHome = true }) {
             </nav>
     
             <div className="flex items-center gap-2">
+              <a
+                href="/login/"
+                className="btn border border-ink/15 bg-white/70 px-4 py-2.5 text-ink hover:border-ink hover:bg-white sm:px-5 sm:py-3.5"
+              >
+                <LockKeyhole size={15} aria-hidden="true" /> Ingresar
+              </a>
               <a href={hrefFor('contacto', onHome)} className="btn btn-primary hidden sm:inline-flex">
                 Solicitar cotización <ArrowUpRight size={16} aria-hidden="true" />
               </a>
@@ -149,9 +155,14 @@ export default function Header({ onHome = true }) {
               </li>
             ))}
           </ul>
-          <a href={hrefFor('contacto', onHome)} onClick={() => setOpen(false)} className="btn btn-primary w-full py-4 text-base">
-            Solicitar cotización <ArrowUpRight size={18} aria-hidden="true" />
-          </a>
+          <div className="flex flex-col gap-3">
+            <a href={hrefFor('contacto', onHome)} onClick={() => setOpen(false)} className="btn btn-primary w-full py-4 text-base">
+              Solicitar cotización <ArrowUpRight size={18} aria-hidden="true" />
+            </a>
+            <a href="/login/" className="btn btn-outline w-full py-4 text-base">
+              <LockKeyhole size={18} aria-hidden="true" /> Ingresar
+            </a>
+          </div>
         </nav>
       </div>
     </>

@@ -7,6 +7,8 @@ const PAGES = {
   main: 'index.html',
   privacidad: 'privacidad/index.html',
   terminos: 'terminos/index.html',
+  login: 'login/index.html',
+  planes: 'planes-comerciales/index.html',
   notFound: '404.html',
 }
 const SITEMAP_PATHS = ['/', '/privacidad/', '/terminos/']
@@ -29,7 +31,7 @@ function siteMeta(siteUrl) {
       this.emitFile({
         type: 'asset',
         fileName: 'robots.txt',
-        source: `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
+        source: `User-agent: *\nAllow: /\nDisallow: /login/\nDisallow: /planes-comerciales/\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
       })
     },
   }

@@ -93,6 +93,31 @@ Aplicarla (elige una opción):
 
 Revisar solicitudes: Supabase → Table Editor → `contact_requests` (o con una sesión de administrador).
 
+## Portal privado de planes comerciales
+
+Botón **Ingresar** (navbar) → `/login/` → `/planes-comerciales/`. Solo para tres usuarios autorizados.
+
+**Cómo está protegido**
+- Autenticación real con **Supabase Auth** (correo + contraseña). El usuario escribe `ana.diaz` y el sitio
+  usa el correo interno `ana.diaz@aiduoficial.com`. Las contraseñas solo existen en Supabase.
+- Los planes y precios **no están en el código** ni en GitHub: viven en la tabla `portal_content` y la base de
+  datos solo los entrega a sesiones válidas que estén en la lista `portal_members` (RLS). Ocultar la página no
+  es la protección: aunque alguien abra la URL o el JavaScript, no recibe datos.
+- El contenido se carga con `supabase/private/planes_comerciales.sql`, carpeta excluida de Git (`.gitignore`).
+- `/login/` y `/planes-comerciales/` llevan `noindex` y están bloqueadas en `robots.txt`.
+
+**Configuración en Supabase (una sola vez)**
+1. SQL Editor → ejecutar `supabase/migrations/0006_portal_privado.sql`.
+2. Authentication → Users → **Add user → Create new user**, con **Auto Confirm User** activado:
+   `yilber.cupitra@aiduoficial.com`, `paulina.hoyos@aiduoficial.com`, `ana.diaz@aiduoficial.com` y sus contraseñas.
+3. SQL Editor → ejecutar `supabase/private/planes_comerciales.sql` (carga los planes y autoriza a los 3). Debe
+   listar los tres correos al final.
+4. Authentication → Sign In / Providers → desactivar **Allow new users to sign up** (registro público).
+5. Authentication → URL Configuration → Site URL: `https://www.aiduoficial.com`.
+
+Para actualizar precios: edita el JSON del archivo privado y vuelve a ejecutarlo (reemplaza el contenido).
+Para dar o quitar acceso: inserta o borra filas en `portal_members`.
+
 ## Asistente con IA (chatbot)
 
 El botón flotante "¿Hablamos?" abre a **Aidu**, que responde sobre la agencia con la misma información de la

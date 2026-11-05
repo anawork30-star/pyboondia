@@ -14,6 +14,8 @@ const PAGES = {
   privacidad: lazy(() => import('./pages/Legal.jsx')),
   terminos: lazy(() => import('./pages/Legal.jsx')),
   'not-found': lazy(() => import('./pages/NotFound.jsx')),
+  login: lazy(() => import('./pages/Login.jsx')),
+  planes: lazy(() => import('./pages/PlanesComerciales.jsx')),
 }
 
 const page = document.body.dataset.page in PAGES ? document.body.dataset.page : 'home'
@@ -25,6 +27,7 @@ createRoot(document.getElementById('root')).render(
     <Suspense fallback={null}>
       <Page doc={page} />
     </Suspense>
-    <ChatWidget onHome={page === 'home'} />
+    {/* El asistente no se muestra en el área privada */}
+    {page !== 'login' && page !== 'planes' && <ChatWidget onHome={page === 'home'} />}
   </StrictMode>,
 )
