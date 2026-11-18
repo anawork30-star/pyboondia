@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /login/
 Disallow: /planes-comerciales/
+Disallow: /tareas/
 
 Sitemap: https://www.aiduoficial.com/sitemap.xml
