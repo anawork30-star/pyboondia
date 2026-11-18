@@ -118,3 +118,63 @@ describe('ejecución del asistente', () => {
     expect(findClient([{ id: '1', name: 'Café Aroma' }], 'aroma')?.id).toBe('1');
   });
 });
+
+import { runSmartAssistant, wantsAI } from '../../src/lib/tasksAI.js';
+import { parseCommand as parse } from '../../src/lib/taskLogic.js';
+import { parseModelJson, sanitizeActions } from '../../supabase/functions/tareas-ia/index.ts';
+
+describe('asistente con IA', () => {
+  const t1 = { id: 'x1', number: 1, title: 'Propuesta', status: 'pendiente', priority: 'media', client_id: null, due_date: null, steps: [{ text: 'a', done: true }], observations: [] };
+  const api = {
+    createTask: vi.fn(async (f) => ({ id: `n${Math.random()}`, number: 2, created_at: new Date().toISOString(), ...f })),
+    updateTask: vi.fn(async (id, patch) => ({ ...t1, ...patch })),
+    deleteTask: vi.fn(async () => {}),
+    createClient: vi.fn(async (name) => ({ id: 'c1', name })),
+  };
+
+  it('usa la IA para dictados, tareas nuevas y pedidos de paso a paso, no para comandos claros', () => {
+    expect(wantsAI('T-3 en progreso', parse('T-3 en progreso'))).toBe(false);
+    expect(wantsAI('pendientes', parse('pendientes'))).toBe(false);
+    expect(wantsAI('la tres ya está lista', parse('la tres ya está lista'), { voice: true })).toBe(true);
+    expect(wantsAI('Preparar propuesta para Café', parse('Preparar propuesta para Café'))).toBe(true);
+    expect(wantsAI('dame el paso a paso de la T-3', parse('dame el paso a paso de la T-3'))).toBe(true);
+  });
+
+  it('crea varias tareas dictadas con su paso a paso', async () => {
+    const ai = vi.fn(async () => ({
+      actions: [
+        { type: 'create', title: 'Preparar propuesta de redes', client: 'Café Aroma', priority: 'alta', steps: ['Revisar brief', 'Definir pilares', 'Enviar'] },
+        { type: 'create', title: 'Renovar dominio', own: true, steps: ['Entrar al registrador', 'Pagar'] },
+      ],
+    }));
+    const r = await runSmartAssistant('tengo que preparar la propuesta… y renovar el dominio', { tasks: [], clients: [], api }, { voice: true, ai });
+    expect(r.ai).toBe(true);
+    expect(r.tasks).toHaveLength(2);
+    expect(r.tasks?.[0].steps).toEqual([{ text: 'Revisar brief', done: false }, { text: 'Definir pilares', done: false }, { text: 'Enviar', done: false }]);
+    expect(r.text).toContain('Paso a paso:');
+  });
+
+  it('reemplaza los pasos de una tarea existente si se pide rehacerlos', async () => {
+    const ai = vi.fn(async () => ({ actions: [{ type: 'update', number: 1, steps: ['Uno', 'Dos'], replaceSteps: true }] }));
+    const r = await runSmartAssistant('rehaz el paso a paso de la 1', { tasks: [t1], clients: [], api }, { ai });
+    expect(api.updateTask).toHaveBeenLastCalledWith('x1', { steps: [{ text: 'Uno', done: false }, { text: 'Dos', done: false }] });
+    expect(r.ai).toBe(true);
+  });
+
+  it('si la IA falla, anota con el intérprete local y avisa', async () => {
+    const ai = vi.fn(async () => {
+      throw new Error('AI_UNAVAILABLE');
+    });
+    const r = await runSmartAssistant('Enviar cotización a Dermacol', { tasks: [], clients: [], api }, { ai });
+    expect(r.ai).toBe(false);
+    expect(r.tasks).toHaveLength(1);
+    expect(r.text).toContain('no pude conectar con la IA');
+  });
+
+  it('la función filtra lo que devuelve el modelo', () => {
+    const out = sanitizeActions(
+      parseModelJson('```json\n{"actions":[{"type":"create","title":"X","steps":["a",3,"b"],"status":"raro","due":"mañana"},{"type":"drop_table"},{"type":"update"}],"note":"ok"}\n```'),
+    );
+    expect(out).toEqual({ actions: [{ type: 'create', title: 'X', steps: ['a', 'b'] }], note: 'ok' });
+  });
+});

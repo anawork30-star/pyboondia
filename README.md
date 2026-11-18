@@ -19,6 +19,7 @@ src/data/knowledge.js     Conocimiento del asistente, generado desde src/data
 src/lib/chat.js           Cliente del asistente (IA con respaldo local)
 src/lib/chatLocal.js      Respuestas sin IA cuando la función no está disponible
 supabase/functions/chat/  Edge Function que llama a Claude (la clave de Anthropic vive solo aquí)
+supabase/functions/tareas-ia/  Edge Function del asistente de tareas (dictado → tareas con paso a paso)
 scripts/build-chat-knowledge.mjs  Copia el conocimiento a la Edge Function (corre antes de cada build)
 src/pages/                Home, Legal (privacidad y términos), NotFound
 src/lib/contact.js        Validación y envío del formulario (RPC segura de Supabase)
@@ -132,7 +133,18 @@ Dentro del portal privado, pestaña **Mis tareas** (`/tareas/`). Cada usuaria ve
   - `T-3 cliente: Café Aroma` · `T-3 propia` · `T-3 vence 25/11` · `T-3` (detalle) · `eliminar T-3` (pide confirmación)
   - `pendientes` · `pendientes de Café Aroma` · `vencidas` · `resumen` · `clientes` · `nuevo cliente: Dermacol` · `ayuda`
 
-  Funciona sin IA (intérprete en `src/lib/taskLogic.js`), así que no consume créditos ni envía datos a terceros.
+- **Dictado por voz y paso a paso con IA.** El botón de micrófono del chat transcribe en español (Web Speech API:
+  Chrome, Edge y Safari; Firefox no lo soporta) y envía el texto al terminar. Los dictados, las tareas nuevas y los
+  pedidos tipo "dame el paso a paso de la T-3" se envían a la Edge Function `tareas-ia` (Gemini), que devuelve
+  acciones (varias tareas a la vez, cliente, prioridad, fecha) y **de 3 a 7 pasos sugeridos por tarea**. La función
+  solo responde a miembros del portal y no escribe en la base de datos: el navegador aplica los cambios con la sesión
+  de la usuaria (RLS). Los comandos cortos (`T-3 lista`, `pendientes`…) se resuelven sin IA, y si la IA no está
+  disponible, el intérprete local (`src/lib/taskLogic.js`) anota la tarea igual, sin pasos sugeridos.
+  Privacidad: el audio lo transcribe el servicio de voz del navegador (Google o Apple) y el texto pasa por Gemini.
+
+  Desplegar la función (usa los secretos `GEMINI_API_KEY` y `ALLOWED_ORIGINS` que ya tiene el chat):
+  `npx supabase functions deploy tareas-ia`. También se puede crear desde el panel (Edge Functions → Deploy a new
+  function → Via Editor, nombre `tareas-ia`) pegando `supabase/functions/tareas-ia/index.ts`, que es autocontenido.
 - **Dashboard semanal** (pestaña "Semana", lunes a domingo, navegable): % de avance (completadas / compromisos
   de la semana), estado de los compromisos, completadas por día, avance por cliente, pendientes y vencidas.
 
