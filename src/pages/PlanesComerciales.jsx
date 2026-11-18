@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Bot, Check, Globe, Info, LoaderCircle, LogOut, Minus, ShieldCheck, Star } from 'lucide-react'
-import Logo from '../components/Logo'
+import { Bot, Check, Globe, Info, Minus, ShieldCheck, Star } from 'lucide-react'
 import Reveal from '../components/Reveal'
-import { LOGIN_PATH, PORTAL_PATH, fetchPortalContent, getSession, signOut, watchSession } from '../lib/auth.js'
+import PortalBar from '../components/PortalShell.jsx'
+import { toLogin, usePortalSession } from '../lib/portalSession.js'
+import { PORTAL_PATH, fetchPortalContent } from '../lib/auth.js'
 
 // Toda la información comercial (planes, precios, condiciones) llega desde Supabase después de
 // validar la sesión y la pertenencia a portal_members. Este archivo solo contiene el diseño.
@@ -15,76 +16,29 @@ const ACCENTS = {
 }
 const ADDON_ICON = { web: Globe, bots: Bot }
 
-// Evita que el aviso de "sesión expirada" aparezca cuando la persona cierra sesión a propósito.
-let loggingOut = false
-
-const toLogin = (reason) =>
-  window.location.replace(`${LOGIN_PATH}?${reason}&next=${encodeURIComponent(PORTAL_PATH)}`)
-
 export default function PlanesComerciales() {
   const [state, setState] = useState({ status: 'loading' }) // loading | ready | error
-  const [email, setEmail] = useState('')
-  const [leaving, setLeaving] = useState(false)
+  const { session, email, logout, leaving } = usePortalSession()
 
   useEffect(() => {
-    let stop = () => {}
-    ;(async () => {
-      const session = await getSession().catch(() => null)
-      if (!session) return toLogin('acceso')
-      setEmail(session.user.email ?? '')
-      stop = await watchSession(() => !loggingOut && toLogin('expirada'))
-      try {
-        setState({ status: 'ready', data: await fetchPortalContent() })
-      } catch (err) {
-        if (err.code === 'EXPIRED') return toLogin('expirada')
+    if (!session) return
+    fetchPortalContent()
+      .then((data) => setState({ status: 'ready', data }))
+      .catch((err) => {
+        if (err.code === 'EXPIRED') return toLogin('expirada', PORTAL_PATH)
         setState({ status: 'error', message: err.message })
-      }
-    })()
-    return () => stop()
-  }, [])
-
-  async function logout() {
-    setLeaving(true)
-    loggingOut = true
-    await signOut().catch(() => {})
-    window.location.replace(`${LOGIN_PATH}?salida`)
-  }
+      })
+  }, [session])
 
   return (
     <>
-      <PortalBar email={email} onLogout={logout} leaving={leaving} />
+      <PortalBar current="planes" email={email} onLogout={logout} leaving={leaving} />
       <main id="contenido" className="pb-24 pt-28 sm:pt-32">
         {state.status === 'loading' && <Loading />}
         {state.status === 'error' && <ErrorState message={state.message} onLogout={logout} />}
         {state.status === 'ready' && <Portal data={state.data} />}
       </main>
     </>
-  )
-}
-
-function PortalBar({ email, onLogout, leaving }) {
-  return (
-    <header className="fixed inset-x-0 top-0 z-50 py-3">
-      <div className="container-x">
-        <div className="flex items-center justify-between gap-3 rounded-full bg-white/85 py-2 pl-5 pr-2 shadow-[0_12px_40px_-12px_rgb(20_18_24/0.25)] ring-1 ring-ink/5 backdrop-blur-xl sm:pl-6">
-          <div className="flex items-center gap-3">
-            <a href="/" aria-label="AIDU, ir al sitio público" className="shrink-0">
-              <Logo label={false} className="h-9 w-auto" />
-            </a>
-            <span className="hidden items-center gap-1.5 rounded-full bg-violet-soft px-3 py-1 text-xs font-semibold text-violet sm:inline-flex">
-              <ShieldCheck size={14} aria-hidden="true" /> Sección privada
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {email && <span className="hidden text-sm text-muted md:inline">{email.split('@')[0]}</span>}
-            <button type="button" onClick={onLogout} disabled={leaving} className="btn btn-primary px-4 py-2.5 sm:px-5">
-              {leaving ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <LogOut size={16} aria-hidden="true" />}
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
   )
 }
 
