@@ -1,14 +1,16 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Bot, LoaderCircle, RotateCcw } from 'lucide-react'
-import { runAssistant } from '../../lib/taskAssistant.js'
+import { ArrowUp, Bot, LoaderCircle, Mic, RotateCcw, Sparkles, Square } from 'lucide-react'
+import { runSmartAssistant } from '../../lib/tasksAI.js'
+import { useDictation } from './useDictation.js'
 import * as api from '../../lib/tasks.js'
 
 const WELCOME = {
   role: 'bot',
   plain: true,
   text:
-    'Hola, soy tu asistente de tareas. Cuéntame tus pendientes y los anoto en el tablero.\n\n' +
-    'Ej.: "Nueva tarea: enviar propuesta, cliente: Café Aroma, vence viernes, pasos: cotizar; revisar; enviar".\n' +
+    'Hola, soy tu asistente de tareas. Escríbeme o dícteme tus pendientes (toca el micrófono) y los anoto en el tablero con un paso a paso sugerido.\n\n' +
+    'Ej. dictado: "Tengo que preparar la propuesta de redes para Café Aroma antes del viernes, es urgente".\n' +
+    'También: "dame el paso a paso de la tarea 3".\n' +
     'Luego usa el número: "T-1 en progreso", "T-1 obs: pidió descuento", "T-1 lista".\n\nEscribe "ayuda" para ver más ejemplos.',
 }
 const QUICK = ['pendientes', 'resumen', 'vencidas', 'ayuda']
@@ -41,7 +43,7 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
   const storageKey = `aidu-tareas-chat:${userId ?? 'anon'}`
   const [messages, setMessages] = useState(() => loadChat(storageKey))
   const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(false) // false | 'local' | 'ai'
   const pending = useRef(null)
   const listRef = useRef(null)
   const inputRef = useRef(null)
@@ -55,19 +57,19 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, storageKey])
 
-  async function send(text) {
+  async function send(text, { voice = false } = {}) {
     const message = text.trim()
     if (!message || busy) return
     setInput('')
-    setMessages((m) => [...m, { role: 'user', text: message }])
-    setBusy(true)
+    setMessages((m) => [...m, { role: 'user', text: message, voice }])
+    setBusy(voice || message.length > 25 ? 'ai' : 'local')
     try {
-      const res = await runAssistant(message, { tasks, clients, pending: pending.current, api })
+      const res = await runSmartAssistant(message, { tasks, clients, pending: pending.current, api }, { voice })
       pending.current = res.pending ?? null
       if (res.tasks) onTasks(res.tasks)
       if (res.clients) onClients(res.clients)
       if (res.focus) onFocus(res.focus)
-      setMessages((m) => [...m, { role: 'bot', text: res.text }])
+      setMessages((m) => [...m, { role: 'bot', text: res.text, ai: res.ai }])
     } catch (err) {
       pending.current = null
       if (err?.code === 'EXPIRED') return onError(err)
@@ -77,6 +79,11 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
       inputRef.current?.focus()
     }
   }
+
+  const dictation = useDictation({
+    onText: (t) => setInput(t),
+    onDone: (t) => send(t, { voice: true }),
+  })
 
   return (
     <section aria-label="Asistente de tareas" className="flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_18px_50px_-24px_rgb(20_18_24/0.3)] ring-1 ring-ink/5">
@@ -116,16 +123,24 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
                     : 'rounded-bl-md bg-white text-ink ring-1 ring-ink/5'
               }`}
             >
+              {m.voice && <Mic size={12} className="mr-1 inline opacity-70" aria-label="Dictado" />}
               {m.role === 'bot' && !m.plain ? <Linkified text={m.text} onOpenTask={onOpenTask} /> : m.text}
+              {m.ai && (
+                <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-violet">
+                  <Sparkles size={11} aria-hidden="true" /> Organizado con IA · revisa y ajusta si hace falta
+                </span>
+              )}
             </p>
           </div>
         ))}
         {busy && (
           <div className="flex justify-start" role="status">
             <span className="flex gap-1 rounded-2xl rounded-bl-md bg-white px-4 py-3 ring-1 ring-ink/5">
-              <span className="sr-only">Guardando…</span>
+              <span className={busy === 'ai' ? 'mr-2 text-xs font-medium text-muted' : 'sr-only'}>
+                {busy === 'ai' ? 'Organizando tu pendiente…' : 'Guardando…'}
+              </span>
               {[0, 1, 2].map((d) => (
-                <span key={d} className="typing-dot h-1.5 w-1.5 rounded-full bg-ink" style={{ animationDelay: `${d * 150}ms` }} />
+                <span key={d} className="typing-dot h-1.5 w-1.5 self-center rounded-full bg-ink" style={{ animationDelay: `${d * 150}ms` }} />
               ))}
             </span>
           </div>
@@ -146,6 +161,12 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
             </button>
           ))}
         </div>
+        {(dictation.listening || dictation.error) && (
+          <p role="status" className={`mb-2 flex items-center gap-2 text-xs font-semibold ${dictation.error ? 'text-[#a52a12]' : 'text-violet'}`}>
+            {dictation.listening && <span className="h-2 w-2 animate-pulse rounded-full bg-coral" aria-hidden="true" />}
+            {dictation.error || 'Te escucho… habla con naturalidad. Toca ■ cuando termines.'}
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -160,7 +181,8 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
             id="asistente-mensaje"
             ref={inputRef}
             rows={2}
-            maxLength={1000}
+            maxLength={2000}
+            readOnly={dictation.listening}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -169,10 +191,23 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
                 send(input)
               }
             }}
-            placeholder='Ej.: "T-3 en progreso" o una tarea nueva…'
+            placeholder={dictation.supported ? 'Escribe o toca el micrófono para dictar…' : 'Ej.: "T-3 en progreso" o una tarea nueva…'}
             className="field min-h-0 resize-none py-2.5 text-sm"
           />
-          <button type="submit" disabled={busy || !input.trim()} className="btn btn-primary h-11 w-11 shrink-0 p-0" aria-label="Enviar">
+          {dictation.supported && (
+            <button
+              type="button"
+              onClick={dictation.listening ? dictation.stop : dictation.start}
+              disabled={Boolean(busy)}
+              className={`btn h-11 w-11 shrink-0 p-0 ${dictation.listening ? 'bg-coral text-ink' : 'bg-violet-soft text-violet hover:bg-violet hover:text-paper'}`}
+              aria-label={dictation.listening ? 'Terminar dictado' : 'Dictar por voz'}
+              aria-pressed={dictation.listening}
+              title={dictation.listening ? 'Terminar dictado' : 'Dictar por voz'}
+            >
+              {dictation.listening ? <Square size={16} fill="currentColor" aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
+            </button>
+          )}
+          <button type="submit" disabled={Boolean(busy) || dictation.listening || !input.trim()} className="btn btn-primary h-11 w-11 shrink-0 p-0" aria-label="Enviar">
             {busy ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
           </button>
         </form>

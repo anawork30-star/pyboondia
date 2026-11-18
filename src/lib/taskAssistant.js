@@ -4,7 +4,9 @@
 import { PRIORITY_LABEL, STATUS_LABEL, fold, formatDate, parseCommand, startOfWeek, taskId, toISODate, weekStats } from './taskLogic.js'
 
 export const HELP_TEXT = [
-  'Puedes escribirme como hablas. Algunos ejemplos:',
+  'Puedes escribirme o dictarme (micrófono) como hablas. Con IA, cada tarea nueva trae un paso a paso sugerido. Algunos ejemplos:',
+  '• (dictado) Tengo que montar la campaña de Navidad de Dermacol para el 5 de diciembre, es urgente',
+  '• Dame el paso a paso de la tarea 3 · Rehaz los pasos de la T-3',
   '• Nueva tarea: Parrilla de diciembre, cliente: Café Aroma, prioridad alta, vence viernes, pasos: brief; bocetos; aprobación, obs: esperan fotos',
   '• Enviar cotización a Dermacol para el lunes (si no indico cliente, queda como tarea propia)',
   '• T-3 en progreso · T-3 en espera · T-3 lista',
@@ -55,9 +57,13 @@ const reply = (text, extra = {}) => ({ text, ...extra })
  * @returns {Promise<{ text: string, tasks?: any[], clients?: any[], pending?: any, focus?: string }>}
  */
 export async function runAssistant(message, ctx) {
+  return executeCommand(parseCommand(message, { today: ctx.today ?? new Date() }), ctx)
+}
+
+/** Aplica una acción ya interpretada (por el intérprete local o por la IA). */
+export async function executeCommand(cmd, ctx) {
   const { api, today = new Date() } = ctx
   let { tasks, clients } = ctx
-  const cmd = parseCommand(message, { today })
   const byNumber = (n) => tasks.find((t) => t.number === n)
   const notFound = (n) => reply(`No encuentro la tarea ${taskId(n)}. Escribe "pendientes" para ver tus tareas abiertas.`)
 
@@ -117,7 +123,8 @@ export async function runAssistant(message, ctx) {
       fields.steps = (cmd.steps ?? []).map((text) => ({ text, done: false }))
       fields.observations = cmd.observation ? [{ text: cmd.observation, at: new Date().toISOString() }] : []
       const task = await api.createTask(fields)
-      return reply([`Anotada ✓\n${describe(task, clients)}`, ...notes].join('\n\n'), {
+      const plan = task.steps?.length ? `\n\nPaso a paso:\n${task.steps.map((s, i) => `${i + 1}. ${s.text}`).join('\n')}` : ''
+      return reply([`Anotada ✓\n${describe(task, clients)}${plan}`, ...notes].join('\n\n'), {
         tasks: [...tasks, task],
         clients,
         focus: task.id,
@@ -173,8 +180,13 @@ export async function runAssistant(message, ctx) {
       if (cmd.invalidDue) notes.push(`No entendí la fecha "${cmd.invalidDue}". Prueba con "viernes", "mañana" o "25/11".`)
       let steps = t.steps ?? []
       if (cmd.steps?.length) {
-        steps = [...steps, ...cmd.steps.map((text) => ({ text, done: false }))]
-        done.push(cmd.steps.length === 1 ? `paso agregado: ${cmd.steps[0]}` : `${cmd.steps.length} pasos agregados`)
+        const added = cmd.steps.map((text) => ({ text, done: false }))
+        steps = cmd.replaceSteps ? added : [...steps, ...added]
+        done.push(
+          cmd.steps.length === 1 && !cmd.replaceSteps
+            ? `paso agregado: ${cmd.steps[0]}`
+            : `paso a paso ${cmd.replaceSteps ? 'nuevo' : 'agregado'}:\n${steps.map((s, i) => `${s.done ? '✓' : '○'} ${i + 1}. ${s.text}`).join('\n')}`,
+        )
       }
       const touch = (list, value, label) => {
         const valid = list.filter((n) => n >= 1 && n <= steps.length)
