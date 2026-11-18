@@ -16,6 +16,7 @@ const PAGES = {
   'not-found': lazy(() => import('./pages/NotFound.jsx')),
   login: lazy(() => import('./pages/Login.jsx')),
   planes: lazy(() => import('./pages/PlanesComerciales.jsx')),
+  tareas: lazy(() => import('./pages/Tareas.jsx')),
 }
 
 const page = document.body.dataset.page in PAGES ? document.body.dataset.page : 'home'
@@ -28,6 +29,6 @@ createRoot(document.getElementById('root')).render(
       <Page doc={page} />
     </Suspense>
     {/* El asistente no se muestra en el área privada */}
-    {page !== 'login' && page !== 'planes' && <ChatWidget onHome={page === 'home'} />}
+    {!['login', 'planes', 'tareas'].includes(page) && <ChatWidget onHome={page === 'home'} />}
   </StrictMode>,
 )

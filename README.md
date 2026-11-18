@@ -95,7 +95,7 @@ Revisar solicitudes: Supabase → Table Editor → `contact_requests` (o con una
 
 ## Portal privado de planes comerciales
 
-Botón **Ingresar** (navbar) → `/login/` → `/planes-comerciales/`. Solo para tres usuarios autorizados.
+Botón **Ingresar** (navbar) → `/login/` → `/planes-comerciales/` (y la pestaña **Mis tareas**, `/tareas/`). Solo para tres usuarios autorizados.
 
 **Cómo está protegido**
 - Autenticación real con **Supabase Auth** (correo + contraseña). El usuario escribe `ana.diaz` y el sitio
@@ -117,6 +117,27 @@ Botón **Ingresar** (navbar) → `/login/` → `/planes-comerciales/`. Solo para
 
 Para actualizar precios: edita el JSON del archivo privado y vuelve a ejecutarlo (reemplaza el contenido).
 Para dar o quitar acceso: inserta o borra filas en `portal_members`.
+
+## Tareas pendientes (kanban + asistente + dashboard semanal)
+
+Dentro del portal privado, pestaña **Mis tareas** (`/tareas/`). Cada usuaria ve **solo sus propias tareas**.
+
+- **Tablero kanban** con cuatro estados: Pendiente, En progreso, En espera y Completada. Se mueve arrastrando la
+  tarjeta, desde el detalle o desde el chat. Cada tarea tiene número (`T-1`, `T-2`…), cliente (o "propia"),
+  prioridad, fecha límite, **pasos a seguir** (con casillas) y **observaciones** con fecha. Filtro por cliente.
+- **Asistente de tareas** (chat a la derecha; botón "Asistente" en móvil). Entiende mensajes como:
+  - `Nueva tarea: Parrilla de diciembre, cliente: Café Aroma, prioridad alta, vence viernes, pasos: brief; bocetos; aprobación, obs: esperan fotos`
+  - `Enviar cotización a Dermacol para el lunes` (texto libre = tarea nueva; sin cliente = propia)
+  - `T-3 en progreso` · `T-3 en espera` · `T-3 lista` · `T-3 obs: pidió cambios` · `T-3 paso: revisar` · `T-3 paso 1 listo`
+  - `T-3 cliente: Café Aroma` · `T-3 propia` · `T-3 vence 25/11` · `T-3` (detalle) · `eliminar T-3` (pide confirmación)
+  - `pendientes` · `pendientes de Café Aroma` · `vencidas` · `resumen` · `clientes` · `nuevo cliente: Dermacol` · `ayuda`
+
+  Funciona sin IA (intérprete en `src/lib/taskLogic.js`), así que no consume créditos ni envía datos a terceros.
+- **Dashboard semanal** (pestaña "Semana", lunes a domingo, navegable): % de avance (completadas / compromisos
+  de la semana), estado de los compromisos, completadas por día, avance por cliente, pendientes y vencidas.
+
+**Activarlo en Supabase (una sola vez):** SQL Editor → ejecutar `supabase/migrations/0007_tareas.sql` (requiere la
+0006). Usa la misma lista `portal_members`; no hay que crear usuarios nuevos.
 
 ## Asistente con IA (chatbot)
 
