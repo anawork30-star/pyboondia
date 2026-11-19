@@ -30,3 +30,6 @@ dist-ssr
 
 # Contenido comercial confidencial (precios): se ejecuta en Supabase, nunca se sube a GitHub
 supabase/private/
+
+# Documentos comerciales generados (contienen precios)
+documentos-privados/

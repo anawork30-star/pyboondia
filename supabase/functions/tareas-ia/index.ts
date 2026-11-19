@@ -1,5 +1,6 @@
-// Edge Function "tareas-ia": convierte lo que la usuaria escribe o dicta en acciones del tablero de
-// tareas (crear, actualizar, listar…) y propone el paso a paso de cada tarea.
+// Edge Function "tareas-ia": convierte lo que la usuaria escribe, dicta o graba en una NOTA DE VOZ en
+// acciones del tablero de tareas (crear, actualizar, listar…) y propone el paso a paso de cada tarea.
+// Las notas de voz llegan como audio en base64: Gemini las transcribe y las interpreta en un solo paso.
 //
 // - Solo responde a sesiones del portal privado (verifica is_portal_member con el token de la usuaria).
 // - NO escribe en la base de datos: devuelve acciones y el navegador las aplica con la sesión de la
@@ -10,10 +11,14 @@
 // Edge Functions del panel de Supabase. Despliegue por CLI: npx supabase functions deploy tareas-ia
 
 const MAX_MESSAGE = 2000;
+const MAX_AUDIO_BASE64 = 4_000_000; // ~3 MB de audio (varios minutos de nota de voz)
+// Formatos que graban los navegadores (iPhone y Chrome reciente: mp4; Chrome: webm; Firefox: ogg).
+const AUDIO_TYPES = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/wav", "audio/x-m4a", "audio/flac"]);
 const MAX_ACTIONS = 10;
 const MAX_STEPS = 12;
 const RATE_LIMIT = { max: 40, windowMs: 10 * 60 * 1000 }; // por usuaria y por instancia
 const TIMEOUT_MS = 30000;
+const AUDIO_TIMEOUT_MS = 50000; // transcribir e interpretar una nota de voz tarda más
 
 const TYPES = new Set(["create", "update", "show", "delete", "list", "summary", "help", "addClient", "clients"]);
 const STATUSES = new Set(["pendiente", "en_progreso", "en_espera", "completada"]);
@@ -25,13 +30,16 @@ export type TaskContext = {
   clients: string[];
   tasks: { number: number; title: string; status: string; client: string | null; steps: number }[];
 };
+export type AudioInput = { mimeType: string; data: string };
 
-export const SYSTEM_PROMPT = `Eres el asistente de tareas de una agencia de marketing digital (AIDU). La usuaria te escribe o te DICTA POR VOZ sus pendientes en español de Colombia. El dictado llega sin puntuación y con muletillas ("eh", "este", "o sea"); interprétalo con sentido común.
+export const SYSTEM_PROMPT = `Eres el asistente de tareas de una agencia de marketing digital (AIDU). La usuaria te escribe, te dicta o te manda NOTAS DE VOZ con sus pendientes en español de Colombia. El dictado llega sin puntuación y con muletillas ("eh", "este", "o sea"); interprétalo con sentido común.
 
 Tu trabajo: convertir el mensaje en acciones para su tablero kanban y, sobre todo, proponer un PASO A PASO útil para cada tarea.
 
 Responde SOLO con JSON válido, con esta forma:
-{"actions":[ ... ],"note":"comentario breve opcional"}
+{"transcript":"(solo si llegó una nota de voz) lo que dijo, transcrito fielmente y con puntuación","actions":[ ... ],"note":"comentario breve opcional"}
+
+Si llega una NOTA DE VOZ (audio adjunto): transcríbela en "transcript" y luego interprétala como si la hubiera escrito. Si el audio no se entiende o está en silencio, responde {"transcript":"","actions":[{"type":"help"}],"note":"No logré entender la nota de voz. ¿Me la repites?"}.
 
 Cada acción es un objeto con "type" y los campos que apliquen:
 - "create": nueva tarea. Campos: "title" (corto, empieza con verbo en infinitivo, máx. 90 caracteres), "client" (solo si lo menciona), "own": true (si dice que es propia/personal/interna), "priority" ("alta"|"media"|"baja", solo si se deduce: urgente/importante = alta), "due" (YYYY-MM-DD), "steps" (lista de pasos), "observation" (contexto o detalles útiles que dijo y no caben en el título).
@@ -44,12 +52,12 @@ Reglas:
 - Si pide el paso a paso, un plan o "cómo hago" una tarea existente, usa "update" con "steps" para esa tarea (con "replaceSteps": true si ya tenía pasos y pide rehacerlos).
 - Las tareas se identifican por número: "T-3", "tarea 3", "la tres", "la número tres" = number 3. Usa la lista TAREAS para reconocer a cuál se refiere si la nombra por su título.
 - Estados: "ya la terminé/lista/hecha" = completada; "empecé/estoy en eso" = en_progreso; "esperando al cliente/bloqueada" = en_espera.
-- Clientes: si el nombre se parece a uno de CLIENTES, usa exactamente ese nombre. No inventes clientes. Si no menciona cliente, no pongas "client".
+- Clientes (la etiqueta de cada tarea): si el nombre se parece a uno de CLIENTES, usa exactamente ese nombre. Hay clientes de nombre parecido que son DISTINTOS (p. ej. "Colsanitas" y "EPS Sanitas"): elige el que coincide con las palabras que dijo ("la EPS" o "EPS Sanitas" ≠ "Colsanitas"). Si nombra un cliente nuevo, escríbelo bien (mayúsculas y siglas como EPS). No inventes clientes. Si no menciona cliente, no pongas "client".
 - Fechas: calcúlalas desde HOY. "el viernes" = el próximo viernes (o hoy si hoy es viernes y lo dice así). Sin fecha mencionada, no pongas "due".
 - Si el mensaje no pide nada sobre tareas, responde {"actions":[{"type":"help"}]}.
 - No incluyas texto fuera del JSON.`;
 
-export function buildUserPrompt(message: string, ctx: TaskContext): string {
+export function buildUserPrompt(message: string, ctx: TaskContext, { audio = false } = {}): string {
   const tasks = ctx.tasks
     .slice(0, 80)
     .map((t) => `T-${t.number} | ${t.title} | ${t.status} | ${t.client ?? "propia"} | ${t.steps} pasos`)
@@ -58,7 +66,7 @@ export function buildUserPrompt(message: string, ctx: TaskContext): string {
     `HOY: ${ctx.weekday} ${ctx.today}`,
     `CLIENTES: ${ctx.clients.length ? ctx.clients.join(", ") : "(ninguno)"}`,
     `TAREAS ABIERTAS:\n${tasks || "(ninguna)"}`,
-    `MENSAJE DE LA USUARIA:\n${message}`,
+    audio ? "MENSAJE DE LA USUARIA: (nota de voz adjunta)" : `MENSAJE DE LA USUARIA:\n${message}`,
   ].join("\n\n");
 }
 
@@ -66,7 +74,7 @@ const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.
 const num = (v: unknown) => (Number.isInteger(v) && (v as number) > 0 && (v as number) < 100000 ? (v as number) : undefined);
 
 /** Valida y recorta lo que devuelve el modelo: solo pasan campos y valores conocidos. */
-export function sanitizeActions(raw: unknown): { actions: Record<string, unknown>[]; note?: string } {
+export function sanitizeActions(raw: unknown): { actions: Record<string, unknown>[]; note?: string; transcript?: string } {
   const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const list = Array.isArray(obj.actions) ? obj.actions : [];
   const actions: Record<string, unknown>[] = [];
@@ -105,7 +113,22 @@ export function sanitizeActions(raw: unknown): { actions: Record<string, unknown
     if (r.type === "addClient" && !out.name) continue;
     actions.push(out);
   }
-  return { actions, note: str(obj.note, 300) };
+  const out: { actions: Record<string, unknown>[]; note?: string; transcript?: string } = { actions };
+  const note = str(obj.note, 300);
+  if (note) out.note = note;
+  const transcript = str(obj.transcript, MAX_MESSAGE);
+  if (transcript) out.transcript = transcript;
+  return out;
+}
+
+/** Acepta solo audio en base64 de un formato conocido y de tamaño razonable. */
+export function sanitizeAudio(input: unknown): AudioInput | null {
+  if (!input || typeof input !== "object") return null;
+  const a = input as Record<string, unknown>;
+  const mimeType = typeof a.mimeType === "string" ? a.mimeType.split(";")[0].trim().toLowerCase() : "";
+  const data = typeof a.data === "string" ? a.data : "";
+  if (!AUDIO_TYPES.has(mimeType) || !data || data.length > MAX_AUDIO_BASE64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return null;
+  return { mimeType, data };
 }
 
 /** Extrae el JSON de la respuesta del modelo (tolera ```json … ```). */
@@ -195,15 +218,22 @@ export async function handler(req: Request): Promise<Response> {
   if (rateLimited(auth.slice(-32))) return json({ error: "RATE_LIMITED" }, 429);
 
   let message = "";
+  let audio: AudioInput | null = null;
+  let badAudio = false;
   let ctx: TaskContext | null = null;
   try {
     const body = await req.json();
     message = typeof body?.message === "string" ? body.message.trim().slice(0, MAX_MESSAGE) : "";
+    if (body?.audio) {
+      audio = sanitizeAudio(body.audio);
+      badAudio = !audio;
+    }
     ctx = sanitizeContext(body?.context);
   } catch {
     // cuerpo inválido
   }
-  if (!message || !ctx) return json({ error: "INVALID_INPUT" }, 400);
+  if (badAudio) return json({ error: "INVALID_AUDIO" }, 400);
+  if ((!message && !audio) || !ctx) return json({ error: "INVALID_INPUT" }, 400);
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
@@ -211,7 +241,15 @@ export async function handler(req: Request): Promise<Response> {
 
   const request = (thinking: boolean) => ({
     systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents: [{ role: "user", parts: [{ text: buildUserPrompt(message, ctx!) }] }],
+    contents: [
+      {
+        role: "user",
+        parts: [
+          ...(audio ? [{ inline_data: { mime_type: audio.mimeType, data: audio.data } }] : []),
+          { text: buildUserPrompt(message, ctx!, { audio: Boolean(audio) }) },
+        ],
+      },
+    ],
     generationConfig: {
       responseMimeType: "application/json",
       maxOutputTokens: 4096,
@@ -227,7 +265,7 @@ export async function handler(req: Request): Promise<Response> {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify(request(thinking)),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(audio ? AUDIO_TIMEOUT_MS : TIMEOUT_MS),
     }).catch(() => null);
     // Si el modelo no admite el ajuste de razonamiento, se reintenta una vez sin él.
     if (res && res.status === 400 && thinking) {
@@ -236,7 +274,7 @@ export async function handler(req: Request): Promise<Response> {
     }
     break;
   }
-  console.log(`tareas-ia ${model}: HTTP ${res?.status ?? "sin respuesta"} en ${Date.now() - started} ms`);
+  console.log(`tareas-ia ${model}${audio ? " (nota de voz)" : ""}: HTTP ${res?.status ?? "sin respuesta"} en ${Date.now() - started} ms`);
   if (!res) return json({ error: "UPSTREAM_BUSY" }, 503);
   if (res.status === 429) return json({ error: "UPSTREAM_BUSY" }, 503);
   if (!res.ok) {
@@ -255,6 +293,7 @@ export async function handler(req: Request): Promise<Response> {
     parsed = null;
   }
   const result = sanitizeActions(parsed);
+  if (!audio) delete result.transcript;
   if (!result.actions.length) return json({ error: "EMPTY_REPLY" }, 502);
   return json(result);
 }

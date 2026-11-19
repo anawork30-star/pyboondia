@@ -1,15 +1,16 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Bot, LoaderCircle, Mic, RotateCcw, Sparkles, Square } from 'lucide-react'
-import { runSmartAssistant } from '../../lib/tasksAI.js'
+import { ArrowUp, AudioLines, Bot, LoaderCircle, Mic, RotateCcw, Sparkles, Square, Trash2 } from 'lucide-react'
+import { runSmartAssistant, runVoiceNote } from '../../lib/tasksAI.js'
 import { useDictation } from './useDictation.js'
+import { formatSeconds, useVoiceNote } from './useVoiceNote.js'
 import * as api from '../../lib/tasks.js'
 
 const WELCOME = {
   role: 'bot',
   plain: true,
   text:
-    'Hola, soy tu asistente de tareas. Escríbeme o dícteme tus pendientes (toca el micrófono) y los anoto en el tablero con un paso a paso sugerido.\n\n' +
-    'Ej. dictado: "Tengo que preparar la propuesta de redes para Café Aroma antes del viernes, es urgente".\n' +
+    'Hola, soy tu asistente de tareas. Escríbeme o mándame una nota de voz (toca el micrófono 🎤) con tus pendientes y los anoto en el tablero con su cliente y un paso a paso sugerido.\n\n' +
+    'Ej. nota de voz: "Para Colsanitas tengo que enviar el informe de octubre el viernes, es urgente, y para EPS Sanitas revisar la parrilla de diciembre".\n' +
     'También: "dame el paso a paso de la tarea 3".\n' +
     'Luego usa el número: "T-1 en progreso", "T-1 obs: pidió descuento", "T-1 lista".\n\nEscribe "ayuda" para ver más ejemplos.',
 }
@@ -80,10 +81,37 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
     }
   }
 
+  async function sendVoiceNote(audio) {
+    if (busy) return
+    const id = Date.now()
+    setMessages((m) => [...m, { role: 'user', voice: true, id, text: `Nota de voz · ${formatSeconds(audio.seconds)}` }])
+    setBusy('voice')
+    try {
+      const res = await runVoiceNote(audio, { tasks, clients, api })
+      pending.current = res.pending ?? null
+      if (res.tasks) onTasks(res.tasks)
+      if (res.clients) onClients(res.clients)
+      if (res.focus) onFocus(res.focus)
+      setMessages((m) => [
+        ...m.map((x) => (x.id === id && res.transcript ? { ...x, text: `“${res.transcript}”`, seconds: audio.seconds } : x)),
+        { role: 'bot', text: res.text, ai: res.ai && !res.failed, error: res.failed },
+      ])
+    } catch (err) {
+      pending.current = null
+      if (err?.code === 'EXPIRED') return onError(err)
+      setMessages((m) => [...m, { role: 'bot', text: `No pude guardar el cambio: ${err.message}`, error: true }])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Notas de voz (grabación) en todos los navegadores modernos; dictado en vivo solo como respaldo.
+  const voice = useVoiceNote({ onDone: sendVoiceNote })
   const dictation = useDictation({
     onText: (t) => setInput(t),
     onDone: (t) => send(t, { voice: true }),
   })
+  const useDictationFallback = !voice.supported && dictation.supported
 
   return (
     <section aria-label="Asistente de tareas" className="flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_18px_50px_-24px_rgb(20_18_24/0.3)] ring-1 ring-ink/5">
@@ -123,7 +151,8 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
                     : 'rounded-bl-md bg-white text-ink ring-1 ring-ink/5'
               }`}
             >
-              {m.voice && <Mic size={12} className="mr-1 inline opacity-70" aria-label="Dictado" />}
+              {m.voice && <Mic size={12} className="mr-1 inline opacity-70" aria-label="Nota de voz" />}
+              {m.seconds ? <span className="mb-1 block text-[11px] font-semibold opacity-75">Nota de voz · {formatSeconds(m.seconds)}</span> : null}
               {m.role === 'bot' && !m.plain ? <Linkified text={m.text} onOpenTask={onOpenTask} /> : m.text}
               {m.ai && (
                 <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-violet">
@@ -136,8 +165,8 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
         {busy && (
           <div className="flex justify-start" role="status">
             <span className="flex gap-1 rounded-2xl rounded-bl-md bg-white px-4 py-3 ring-1 ring-ink/5">
-              <span className={busy === 'ai' ? 'mr-2 text-xs font-medium text-muted' : 'sr-only'}>
-                {busy === 'ai' ? 'Organizando tu pendiente…' : 'Guardando…'}
+              <span className={busy === 'local' ? 'sr-only' : 'mr-2 text-xs font-medium text-muted'}>
+                {busy === 'voice' ? 'Escuchando tu nota de voz…' : busy === 'ai' ? 'Organizando tu pendiente…' : 'Guardando…'}
               </span>
               {[0, 1, 2].map((d) => (
                 <span key={d} className="typing-dot h-1.5 w-1.5 self-center rounded-full bg-ink" style={{ animationDelay: `${d * 150}ms` }} />
@@ -161,12 +190,39 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
             </button>
           ))}
         </div>
-        {(dictation.listening || dictation.error) && (
+        {voice.error && !voice.recording && (
+          <p role="status" className="mb-2 text-xs font-semibold text-[#a52a12]">
+            {voice.error}
+          </p>
+        )}
+        {useDictationFallback && (dictation.listening || dictation.error) && (
           <p role="status" className={`mb-2 flex items-center gap-2 text-xs font-semibold ${dictation.error ? 'text-[#a52a12]' : 'text-violet'}`}>
             {dictation.listening && <span className="h-2 w-2 animate-pulse rounded-full bg-coral" aria-hidden="true" />}
             {dictation.error || 'Te escucho… habla con naturalidad. Toca ■ cuando termines.'}
           </p>
         )}
+        {voice.recording ? (
+          <div className="flex items-center gap-2" role="group" aria-label="Grabando nota de voz">
+            <button
+              type="button"
+              onClick={voice.cancel}
+              className="btn h-11 w-11 shrink-0 bg-ink/5 p-0 text-muted hover:bg-coral-soft hover:text-[#a52a12]"
+              aria-label="Descartar nota de voz"
+              title="Descartar"
+            >
+              <Trash2 size={18} aria-hidden="true" />
+            </button>
+            <div className="flex h-11 flex-1 items-center gap-2.5 rounded-full bg-coral-soft px-4 text-sm font-semibold text-[#a52a12]" role="status">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-coral" aria-hidden="true" />
+              <span className="font-mono tabular-nums">{formatSeconds(voice.seconds)}</span>
+              <AudioLines size={18} className="animate-pulse" aria-hidden="true" />
+              <span className="truncate font-medium">Grabando… habla con naturalidad</span>
+            </div>
+            <button type="button" onClick={voice.stop} className="btn btn-primary h-11 w-11 shrink-0 p-0" aria-label="Enviar nota de voz" title="Enviar nota de voz">
+              <ArrowUp size={18} aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -191,10 +247,22 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
                 send(input)
               }
             }}
-            placeholder={dictation.supported ? 'Escribe o toca el micrófono para dictar…' : 'Ej.: "T-3 en progreso" o una tarea nueva…'}
+            placeholder={voice.supported || dictation.supported ? 'Escribe o toca 🎤 para mandar una nota de voz…' : 'Ej.: "T-3 en progreso" o una tarea nueva…'}
             className="field min-h-0 resize-none py-2.5 text-sm"
           />
-          {dictation.supported && (
+          {voice.supported && (
+            <button
+              type="button"
+              onClick={voice.start}
+              disabled={Boolean(busy)}
+              className="btn h-11 w-11 shrink-0 bg-violet-soft p-0 text-violet hover:bg-violet hover:text-paper"
+              aria-label="Grabar nota de voz"
+              title="Grabar nota de voz"
+            >
+              <Mic size={18} aria-hidden="true" />
+            </button>
+          )}
+          {useDictationFallback && (
             <button
               type="button"
               onClick={dictation.listening ? dictation.stop : dictation.start}
@@ -211,6 +279,7 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
             {busy ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
           </button>
         </form>
+        )}
       </div>
     </section>
   )

@@ -21,12 +21,16 @@ export function buildContext(tasks, clients, today = new Date()) {
   }
 }
 
-export async function askTasksAI(message, { tasks, clients, today }) {
+export async function askTasksAI(message, { tasks, clients, today, audio }) {
   const supabase = await getSupabase()
   if (!supabase) throw new Error('NOT_CONFIGURED')
   const { data, error } = await supabase.functions.invoke('tareas-ia', {
-    body: { message, context: buildContext(tasks, clients, today) },
-    timeout: 35000,
+    body: {
+      message,
+      context: buildContext(tasks, clients, today),
+      ...(audio && { audio: { mimeType: audio.mimeType, data: audio.data } }),
+    },
+    timeout: audio ? 60000 : 35000,
   })
   if (error || !Array.isArray(data?.actions) || !data.actions.length) throw new Error('AI_UNAVAILABLE')
   return data
@@ -62,7 +66,33 @@ export async function runSmartAssistant(message, ctx, { voice = false, ai = askT
         : 'Nota: no pude conectar con la IA, así que lo anoté con el intérprete básico y sin proponer pasos.'
     return { ...local, text: cmd.type === 'help' ? `${warn}\n\n${local.text}` : `${local.text}\n\n${warn}`, ai: false }
   }
+  return applyActions(result, ctx)
+}
 
+const VOICE_ERRORS = {
+  INVALID_AUDIO: 'No pude leer el audio de esa nota de voz. Intenta grabarla de nuevo.',
+  default: 'No pude procesar la nota de voz (sin conexión con la IA). Inténtalo de nuevo en un momento o escríbela.',
+}
+
+/**
+ * Procesa una nota de voz: la IA la transcribe y la convierte en acciones.
+ * Devuelve lo mismo que runSmartAssistant y además `transcript` (lo que entendió).
+ */
+export async function runVoiceNote(audio, ctx, { ai = askTasksAI } = {}) {
+  const today = ctx.today ?? new Date()
+  let result
+  try {
+    result = await ai('', { tasks: ctx.tasks, clients: ctx.clients, today, audio })
+  } catch (err) {
+    return { text: VOICE_ERRORS[err?.message] ?? VOICE_ERRORS.default, ai: false, failed: true }
+  }
+  const transcript = result.transcript ?? ''
+  // Audio que no se entendió: solo la nota del modelo, sin la ayuda completa.
+  if (result.actions.every((a) => a.type === 'help') && result.note) return { text: result.note, transcript, ai: true }
+  return { ...(await applyActions(result, ctx)), transcript }
+}
+
+async function applyActions(result, ctx) {
   let { tasks, clients } = ctx
   let focus
   let pending = null

@@ -178,3 +178,60 @@ describe('asistente con IA', () => {
     expect(out).toEqual({ actions: [{ type: 'create', title: 'X', steps: ['a', 'b'] }], note: 'ok' });
   });
 });
+
+import { runVoiceNote } from '../../src/lib/tasksAI.js';
+import { clientColor } from '../../src/components/tareas/styles.js';
+
+describe('Notas de voz y etiquetas de cliente', () => {
+  const clients = [
+    { id: 'c1', name: 'Colsanitas' },
+    { id: 'c2', name: 'EPS Sanitas' },
+  ];
+  const api = {
+    createTask: vi.fn(async (f) => ({ id: `n${Math.random()}`, number: 1, created_at: new Date().toISOString(), ...f })),
+    updateTask: vi.fn(),
+    deleteTask: vi.fn(),
+    createClient: vi.fn(async (name) => ({ id: 'cnew', name })),
+  };
+
+  it('distingue Colsanitas de EPS Sanitas', () => {
+    expect(findClient(clients, 'colsanitas')?.id).toBe('c1');
+    expect(findClient(clients, 'eps sanitas')?.id).toBe('c2');
+    expect(findClient(clients, 'sanitas')?.id).toBe('c2');
+    expect(findClient(clients, 'EPS')?.id).toBe('c2');
+  });
+
+  it('cada cliente tiene siempre el mismo color', () => {
+    expect(clientColor('EPS Sanitas')).toEqual(clientColor('eps sanitas'));
+    expect(clientColor('Colsanitas').bg).toMatch(/^#/);
+  });
+
+  it('una nota de voz crea tareas con su cliente y devuelve la transcripción', async () => {
+    const ai = vi.fn(async () => ({
+      transcript: 'Para EPS Sanitas tengo que revisar la parrilla de diciembre.',
+      actions: [{ type: 'create', title: 'Revisar parrilla de diciembre', client: 'EPS Sanitas', steps: ['Abrir parrilla', 'Revisar', 'Enviar ajustes'] }],
+    }));
+    const audio = { mimeType: 'audio/mp4', data: 'AAAA', seconds: 7 };
+    const r = await runVoiceNote(audio, { tasks: [], clients, api }, { ai });
+    expect(ai.mock.calls[0][1].audio).toBe(audio);
+    expect(r.transcript).toContain('EPS Sanitas');
+    expect(r.tasks?.[0].client_id).toBe('c2');
+    expect(r.ai).toBe(true);
+  });
+
+  it('si la nota no se entiende, solo responde la nota del modelo', async () => {
+    const ai = vi.fn(async () => ({ transcript: '', actions: [{ type: 'help' }], note: 'No logré entender la nota de voz.' }));
+    const r = await runVoiceNote({ mimeType: 'audio/webm', data: 'AAAA', seconds: 2 }, { tasks: [], clients, api }, { ai });
+    expect(r.text).toBe('No logré entender la nota de voz.');
+    expect(r.tasks).toBeUndefined();
+  });
+
+  it('si la IA falla, avisa sin crear nada', async () => {
+    const ai = vi.fn(async () => {
+      throw new Error('AI_UNAVAILABLE');
+    });
+    const r = await runVoiceNote({ mimeType: 'audio/mp4', data: 'AAAA', seconds: 3 }, { tasks: [], clients, api }, { ai });
+    expect(r.failed).toBe(true);
+    expect(r.text).toContain('nota de voz');
+  });
+});

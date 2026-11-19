@@ -17,7 +17,9 @@ import PortalBar from '../components/PortalShell.jsx'
 import { toLogin, usePortalSession } from '../lib/portalSession.js'
 import Assistant from '../components/tareas/Assistant.jsx'
 import WeekDashboard from '../components/tareas/WeekDashboard.jsx'
-import { COLUMN_STYLE, PRIORITY_STYLE } from '../components/tareas/styles.js'
+import ClientTag from '../components/tareas/ClientTag.jsx'
+import InstallApp from '../components/tareas/InstallApp.jsx'
+import { CLIENT_SUGGESTIONS, COLUMN_STYLE, PRIORITY_STYLE, clientColor } from '../components/tareas/styles.js'
 import { PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL, formatDate, taskId, toISODate } from '../lib/taskLogic.js'
 import * as api from '../lib/tasks.js'
 
@@ -46,7 +48,8 @@ export default function Tareas() {
   const [dialog, setDialog] = useState(null) // { id } | { create: true }
   const [highlight, setHighlight] = useState(null)
   const [toast, setToast] = useState('')
-  const [chatOpen, setChatOpen] = useState(false)
+  // El acceso directo "Nota de voz" de la app instalada abre /tareas/?asistente=1 con el asistente abierto.
+  const [chatOpen, setChatOpen] = useState(() => new URLSearchParams(window.location.search).has('asistente'))
 
   const onError = useCallback((err) => {
     if (err?.code === 'EXPIRED') return toLogin('expirada')
@@ -210,21 +213,12 @@ export default function Tareas() {
                     </button>
                   ))}
                 </div>
-                {view === 'tablero' && (
-                  <label className="flex items-center gap-2 text-sm font-semibold">
-                    Cliente
-                    <select value={filter} onChange={(e) => setFilter(e.target.value)} className="field w-auto py-2 pr-9 text-sm">
-                      <option value="todos">Todos</option>
-                      <option value="propias">Tareas propias</option>
-                      {clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+                <InstallApp />
               </div>
+
+              {view === 'tablero' && (
+                <ClientFilter tasks={tasks} clients={clients} filter={filter} onFilter={setFilter} onAddClient={addClient} onError={onError} />
+              )}
 
               <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
                 <div className="min-w-0">
@@ -324,6 +318,106 @@ function Message({ title, text, retry }) {
   )
 }
 
+// ------------------------------------------------------------------ Etiquetas de cliente (filtro)
+
+function ClientFilter({ tasks, clients, filter, onFilter, onAddClient, onError }) {
+  const [adding, setAdding] = useState(null) // null | string
+  const [saving, setSaving] = useState(false)
+  const open = (pred) => tasks.filter((t) => t.status !== 'completada' && pred(t)).length
+  const chip = (active) =>
+    `inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-[box-shadow,background-color] ${
+      active ? 'ring-2 ring-ink' : 'ring-1 ring-ink/10 hover:ring-ink/30'
+    }`
+  const suggestions = CLIENT_SUGGESTIONS.filter((s) => !clients.some((c) => c.name.toLowerCase() === s.toLowerCase()))
+
+  async function save(e) {
+    e.preventDefault()
+    const name = adding?.trim()
+    if (!name || saving) return
+    setSaving(true)
+    try {
+      const c = await onAddClient(name)
+      setAdding(null)
+      onFilter(c.id)
+    } catch (err) {
+      onError(err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-4" role="group" aria-label="Filtrar por cliente">
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+        <button type="button" aria-pressed={filter === 'todos'} onClick={() => onFilter('todos')} className={`${chip(filter === 'todos')} bg-white`}>
+          Todas <span className="text-xs text-muted">{open(() => true)}</span>
+        </button>
+        <button type="button" aria-pressed={filter === 'propias'} onClick={() => onFilter('propias')} className={`${chip(filter === 'propias')} bg-white text-muted`}>
+          Propias <span className="text-xs">{open((t) => !t.client_id)}</span>
+        </button>
+        {clients.map((c) => {
+          const col = clientColor(c.name)
+          return (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={filter === c.id}
+              onClick={() => onFilter(filter === c.id ? 'todos' : c.id)}
+              className={chip(filter === c.id)}
+              style={{ backgroundColor: col.bg, color: col.fg }}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: col.dot }} aria-hidden="true" />
+              {c.name} <span className="text-xs opacity-75">{open((t) => t.client_id === c.id)}</span>
+            </button>
+          )
+        })}
+        {adding === null && (
+          <button type="button" onClick={() => setAdding('')} className={`${chip(false)} border border-dashed border-ink/25 text-muted ring-0`}>
+            <Plus size={14} aria-hidden="true" /> Etiqueta de cliente
+          </button>
+        )}
+      </div>
+      {adding !== null && (
+        <form onSubmit={save} className="mt-3 flex max-w-md flex-wrap items-center gap-2">
+          <label htmlFor="nueva-etiqueta" className="sr-only">
+            Nombre del cliente
+          </label>
+          <input
+            id="nueva-etiqueta"
+            className="field min-w-0 flex-1 py-2 text-sm"
+            placeholder="Ej.: Colsanitas"
+            maxLength={80}
+            autoFocus
+            list="clientes-sugeridos"
+            value={adding}
+            onChange={(e) => setAdding(e.target.value)}
+          />
+          <datalist id="clientes-sugeridos">
+            {suggestions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+          <button type="submit" disabled={!adding.trim() || saving} className="btn btn-primary px-4 py-2 text-sm">
+            {saving ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : 'Crear'}
+          </button>
+          <button type="button" onClick={() => setAdding(null)} className="btn btn-outline h-10 w-10 p-0" aria-label="Cancelar">
+            <X size={16} aria-hidden="true" />
+          </button>
+          {suggestions.length > 0 && (
+            <div className="flex w-full flex-wrap gap-1.5">
+              {suggestions.map((s) => (
+                <button key={s} type="button" onClick={() => setAdding(s)} className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-semibold text-muted hover:bg-violet-soft hover:text-violet">
+                  + {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </form>
+      )}
+    </div>
+  )
+}
+
 // ------------------------------------------------------------------ Tablero kanban
 
 function Board({ tasks, clientName, highlight, onMove, onOpen }) {
@@ -412,7 +506,7 @@ function TaskCard({ task: t, clientName, highlight, onOpen }) {
       </span>
       <span className={`mt-1.5 block font-semibold leading-snug ${t.status === 'completada' ? 'line-through decoration-ink/30' : ''}`}>{t.title}</span>
       <span className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
-        <span className={`rounded-full px-2 py-0.5 font-medium ${t.client_id ? 'bg-ink text-paper' : 'bg-ink/5 text-muted'}`}>{clientName}</span>
+        <ClientTag name={t.client_id ? clientName : null} size="xs" />
         {t.due_date && (
           <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${overdue ? 'bg-coral-soft text-[#a52a12]' : 'bg-ink/5 text-muted'}`}>
             <CalendarDays size={12} aria-hidden="true" /> {overdue ? 'Venció ' : ''}
@@ -605,24 +699,36 @@ function TaskDialog({ task, clients, defaultClient, onClose, onSave, onDelete, o
                     {c.name}
                   </option>
                 ))}
-                <option value="__nuevo">+ Nuevo cliente…</option>
+                <option value="__nuevo">+ Nueva etiqueta de cliente…</option>
               </select>
             ) : (
               <div className="flex gap-2">
                 <input
                   id={`${uid}-client`}
                   className="field"
-                  placeholder="Nombre del cliente"
+                  placeholder="Ej.: Colsanitas, EPS Sanitas…"
                   maxLength={80}
                   autoFocus
+                  list={`${uid}-client-suggest`}
                   value={newClient}
                   onChange={(e) => setNewClient(e.target.value)}
                 />
+                <datalist id={`${uid}-client-suggest`}>
+                  {CLIENT_SUGGESTIONS.filter((s) => !clients.some((c) => c.name.toLowerCase() === s.toLowerCase())).map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
                 <button type="button" onClick={() => setNewClient(null)} className="btn btn-outline px-4" aria-label="Cancelar cliente nuevo">
                   <X size={16} aria-hidden="true" />
                 </button>
               </div>
             )}
+            <div className="mt-2">
+              <ClientTag
+                name={newClient !== null ? newClient.trim() || null : draft.client_id ? (clients.find((c) => c.id === draft.client_id)?.name ?? null) : null}
+                size="xs"
+              />
+            </div>
           </div>
           <div>
             <label htmlFor={`${uid}-due`} className="field-label">

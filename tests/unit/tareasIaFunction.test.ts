@@ -52,3 +52,27 @@ describe('Edge Function tareas-ia', () => {
     expect((await handler(req({ message: 'hola', context: { today: 'ayer' } }))).status).toBe(400);
   });
 });
+
+describe('Edge Function tareas-ia: notas de voz', () => {
+  it('envía el audio a Gemini y devuelve la transcripción', async () => {
+    const f = mockFetch(true, '{"transcript":"Tengo que llamar a Colsanitas","actions":[{"type":"create","title":"Llamar a Colsanitas","client":"Colsanitas","steps":["Preparar","Llamar","Anotar"]}]}');
+    const res = await handler(req({ message: '', audio: { mimeType: 'audio/mp4', data: 'AAAAGGZ0eXA=' }, context }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.transcript).toBe('Tengo que llamar a Colsanitas');
+    expect(body.actions[0].client).toBe('Colsanitas');
+    const gemini = JSON.parse(f.mock.calls[1][1].body as string);
+    expect(gemini.contents[0].parts[0].inline_data).toEqual({ mime_type: 'audio/mp4', data: 'AAAAGGZ0eXA=' });
+    expect(gemini.contents[0].parts[1].text).toContain('nota de voz adjunta');
+  });
+  it('rechaza audio de formato desconocido o mal codificado', async () => {
+    mockFetch(true, '{}');
+    expect((await handler(req({ audio: { mimeType: 'video/mp4', data: 'AAAA' }, context }))).status).toBe(400);
+    expect((await handler(req({ audio: { mimeType: 'audio/mp4', data: 'no es base64!' }, context }))).status).toBe(400);
+  });
+  it('no devuelve transcripción para mensajes escritos', async () => {
+    mockFetch(true, '{"transcript":"x","actions":[{"type":"summary"}]}');
+    const body = await (await handler(req({ message: 'resumen de la semana', context }))).json();
+    expect(body).toEqual({ actions: [{ type: 'summary' }] });
+  });
+});

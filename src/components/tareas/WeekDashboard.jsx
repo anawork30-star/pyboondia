@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, ListChecks, Sparkles } from 'lucide-react'
 import { STATUSES, addDays, formatDate, startOfWeek, taskId, toISODate, weekStats } from '../../lib/taskLogic.js'
 import { COLUMN_STYLE } from './styles.js'
+import ClientTag from './ClientTag.jsx'
 
 const card = 'rounded-[1.75rem] bg-white p-5 shadow-[0_18px_50px_-24px_rgb(20_18_24/0.25)] ring-1 ring-ink/5 sm:p-6'
 
@@ -157,7 +158,7 @@ export default function WeekDashboard({ tasks, clientName, onOpen }) {
               {s.byClient.map((g) => (
                 <li key={g.key}>
                   <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="font-semibold">{g.name}</span>
+                    {g.key === 'propias' ? <span className="font-semibold">{g.name}</span> : <ClientTag name={g.name} />}
                     <span className="text-muted">
                       {g.done}/{g.total} · {Math.round((g.done / g.total) * 100)}%
                     </span>
@@ -224,9 +225,9 @@ function TaskList({ title, empty, tasks, clientName, onOpen, todayISO, done }) {
                   <span className="mt-0.5 font-mono text-xs font-semibold text-violet">{taskId(t.number)}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium leading-snug">{t.title}</span>
-                    <span className="mt-0.5 block text-xs text-muted">
-                      {clientName(t.client_id)}
-                      {done && t.completed_at && ` · ${formatDate(new Date(t.completed_at), { weekday: true })}`}
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                      <ClientTag name={t.client_id ? clientName(t.client_id) : null} size="xs" />
+                      {done && t.completed_at && formatDate(new Date(t.completed_at), { weekday: true })}
                     </span>
                   </span>
                   {!done && t.due_date && (

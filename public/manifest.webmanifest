@@ -1,0 +1,22 @@
+{
+  "id": "/tareas/",
+  "name": "AIDU · Mis tareas",
+  "short_name": "Mis tareas",
+  "description": "Tablero de tareas privado de AIDU con asistente por notas de voz.",
+  "lang": "es-CO",
+  "start_url": "/tareas/?app=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f3ee",
+  "theme_color": "#f6f3ee",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nota de voz al asistente", "short_name": "Nota de voz", "url": "/tareas/?asistente=1", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

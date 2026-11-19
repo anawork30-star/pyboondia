@@ -24,7 +24,11 @@ export function findClient(clients, name) {
   const exact = clients.find((c) => fold(c.name).trim() === n)
   if (exact) return exact
   const partial = clients.filter((c) => fold(c.name).includes(n) || n.includes(fold(c.name)))
-  return partial.length === 1 ? partial[0] : null
+  if (partial.length === 1) return partial[0]
+  // Varios parecidos ("sanitas" → Colsanitas y EPS Sanitas): gana el que tiene la palabra completa.
+  const words = (s) => fold(s).trim().split(/\s+/)
+  const byWord = partial.filter((c) => words(n).every((w) => words(c.name).includes(w)))
+  return byWord.length === 1 ? byWord[0] : null
 }
 
 const clientName = (clients, id) => (id ? (clients.find((c) => c.id === id)?.name ?? 'Cliente') : 'Propia')
