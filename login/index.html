@@ -10,6 +10,20 @@
     <meta name="theme-color" content="#f6f3ee" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- App instalable "Mis tareas" (acceso directo en el celular) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Mis tareas" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      // Guarda el aviso de instalación aunque llegue antes de que cargue la página de tareas.
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault()
+        window.__aiduInstall = e
+        window.dispatchEvent(new Event('aidu-installable'))
+      })
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,10 +32,10 @@
     />
     <script type="module" crossorigin src="/assets/Logo-Be8cEOuE.js"></script>
     <script type="module" crossorigin src="/assets/lock-keyhole-zWd66bvT.js"></script>
-    <script type="module" crossorigin src="/assets/main-C8pxainh.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/main-B_Sbnd6Y.css">
+    <script type="module" crossorigin src="/assets/main-DIxgYqSI.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/main-B8I9H2Gn.css">
   </head>
   <body data-page="login">
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>
