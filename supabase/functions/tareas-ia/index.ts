@@ -11,7 +11,7 @@
 // Edge Functions del panel de Supabase. Despliegue por CLI: npx supabase functions deploy tareas-ia
 
 const MAX_MESSAGE = 2000;
-const MAX_AUDIO_BASE64 = 4_000_000; // ~3 MB de audio (varios minutos de nota de voz)
+const MAX_AUDIO_BASE64 = 8_000_000; // ~6 MB: 2,5 min de WAV mono 16 kHz
 // Formatos que graban los navegadores (iPhone y Chrome reciente: mp4; Chrome: webm; Firefox: ogg).
 const AUDIO_TYPES = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/wav", "audio/x-m4a", "audio/flac"]);
 const MAX_ACTIONS = 10;

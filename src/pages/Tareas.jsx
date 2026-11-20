@@ -18,6 +18,7 @@ import { toLogin, usePortalSession } from '../lib/portalSession.js'
 import Assistant from '../components/tareas/Assistant.jsx'
 import WeekDashboard from '../components/tareas/WeekDashboard.jsx'
 import ClientTag from '../components/tareas/ClientTag.jsx'
+import UpdateNotice from '../components/tareas/UpdateNotice.jsx'
 import InstallApp from '../components/tareas/InstallApp.jsx'
 import { CLIENT_SUGGESTIONS, COLUMN_STYLE, PRIORITY_STYLE, clientColor } from '../components/tareas/styles.js'
 import { PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL, formatDate, taskId, toISODate } from '../lib/taskLogic.js'
@@ -162,6 +163,7 @@ export default function Tareas() {
 
   return (
     <>
+      <UpdateNotice />
       <PortalBar current="tareas" email={email} onLogout={logout} leaving={leaving} />
       <main id="contenido" className="pb-24 pt-28 sm:pt-32">
         <div className="container-x">

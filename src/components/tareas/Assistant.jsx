@@ -198,34 +198,47 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
         {useDictationFallback && (dictation.listening || dictation.error) && (
           <p role="status" className={`mb-2 flex items-center gap-2 text-xs font-semibold ${dictation.error ? 'text-[#a52a12]' : 'text-violet'}`}>
             {dictation.listening && <span className="h-2 w-2 animate-pulse rounded-full bg-coral" aria-hidden="true" />}
-            {dictation.error || 'Te escucho… habla con naturalidad. Toca ■ cuando termines.'}
+            {dictation.error || 'Te escucho… habla con naturalidad. Toca la flecha para enviar.'}
           </p>
         )}
-        {voice.recording ? (
-          <div className="flex items-center gap-2" role="group" aria-label="Grabando nota de voz">
-            <button
-              type="button"
-              onClick={voice.cancel}
-              className="btn h-11 w-11 shrink-0 bg-ink/5 p-0 text-muted hover:bg-coral-soft hover:text-[#a52a12]"
-              aria-label="Descartar nota de voz"
-              title="Descartar"
-            >
-              <Trash2 size={18} aria-hidden="true" />
-            </button>
-            <div className="flex h-11 flex-1 items-center gap-2.5 rounded-full bg-coral-soft px-4 text-sm font-semibold text-[#a52a12]" role="status">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-coral" aria-hidden="true" />
-              <span className="font-mono tabular-nums">{formatSeconds(voice.seconds)}</span>
-              <AudioLines size={18} className="animate-pulse" aria-hidden="true" />
-              <span className="truncate font-medium">Grabando… habla con naturalidad</span>
+        {voice.active ? (
+          <div className="space-y-2" role="group" aria-label="Grabando nota de voz">
+            <div className="flex h-12 items-center gap-2.5 rounded-2xl bg-coral-soft px-4 text-sm font-semibold text-[#a52a12]" role="status">
+              {voice.phase === 'recording' ? (
+                <>
+                  <span className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-coral" aria-hidden="true" />
+                  <span className="font-mono text-base tabular-nums">{formatSeconds(voice.seconds)}</span>
+                  <AudioLines size={18} className="shrink-0 animate-pulse" aria-hidden="true" />
+                  <span className="truncate font-medium">Grabando… cuando termines toca Enviar</span>
+                </>
+              ) : (
+                <>
+                  <LoaderCircle size={18} className="shrink-0 animate-spin" aria-hidden="true" />
+                  <span className="truncate font-medium">
+                    {voice.phase === 'starting' ? 'Activando el micrófono… (si te pregunta, toca Permitir)' : 'Preparando tu nota…'}
+                  </span>
+                </>
+              )}
             </div>
-            <button type="button" onClick={voice.stop} className="btn btn-primary h-11 w-11 shrink-0 p-0" aria-label="Enviar nota de voz" title="Enviar nota de voz">
-              <ArrowUp size={18} aria-hidden="true" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={voice.cancel}
+                disabled={voice.phase === 'processing'}
+                className="btn h-12 flex-1 bg-ink/5 text-muted hover:bg-coral-soft hover:text-[#a52a12]"
+              >
+                <Trash2 size={18} aria-hidden="true" /> Cancelar
+              </button>
+              <button type="button" onClick={voice.stop} disabled={voice.phase !== 'recording'} className="btn btn-primary h-12 flex-[2] text-base">
+                <ArrowUp size={20} aria-hidden="true" /> Enviar nota de voz
+              </button>
+            </div>
           </div>
         ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault()
+            if (dictation.listening) return dictation.stop()
             send(input)
           }}
           className="flex items-end gap-2"
@@ -275,7 +288,7 @@ export default function Assistant({ userId, tasks, clients, onTasks, onClients, 
               {dictation.listening ? <Square size={16} fill="currentColor" aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
             </button>
           )}
-          <button type="submit" disabled={Boolean(busy) || dictation.listening || !input.trim()} className="btn btn-primary h-11 w-11 shrink-0 p-0" aria-label="Enviar">
+          <button type="submit" disabled={Boolean(busy) || (!dictation.listening && !input.trim())} className="btn btn-primary h-11 w-11 shrink-0 p-0" aria-label="Enviar">
             {busy ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
           </button>
         </form>
